@@ -32,13 +32,17 @@ const statusHandler = async (status: LifecycleStatus) => {
   }
 } 
 
+
 export function CheckoutComponent() {
-    return (
-        <div>
-            <Checkout productId='31201d52-87ce-4283-8e90-4dd74654d84f' onStatus={statusHandler}> 
-                <CheckoutButton coinbaseBranded/> 
-                <CheckoutStatus/>
-            </Checkout>
-        </div>
-    );
+  return (
+    <div className="w-full">
+      <Checkout productId='31201d52-87ce-4283-8e90-4dd74654d84f' onStatus={statusHandler}> 
+        <CheckoutButton 
+          className="w-full bg-[rgba(125,178,220,0.8)] backdrop-blur-sm hover:bg-[rgba(143,209,237,0.9)] text-white font-semibold px-4 py-2.5 rounded-xl transition-all duration-300 border border-[rgba(125,178,220,0.2)] shadow-[0_0_15px_rgba(143,209,237,0.15)]" 
+          coinbaseBranded={false}
+        /> 
+        <CheckoutStatus className="mt-2 text-sm text-red-400"/>
+      </Checkout>
+    </div>
+  );
 }
