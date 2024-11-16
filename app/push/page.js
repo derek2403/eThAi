@@ -3,24 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import { PushAPI, CONSTANTS } from '@pushprotocol/restapi';
 import { ethers } from 'ethers';
+import { DAO_CONTRACT, DAO_ABI } from '../../utils/DAOconstants';
 
 const PushChat = () => {
+    const FIXED_GROUP_ID = '7511131ece0491b5e0e18e1a643b88c924a5a9192195b9aed627b4c9322bf81c';
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [groupId, setGroupId] = useState('');
     const [user, setUser] = useState(null);
-    const [groupName, setGroupName] = useState('');
-    const [memberAddress, setMemberAddress] = useState('');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('');
-    const [joinGroupId, setJoinGroupId] = useState('');
+    const [selectedImage, setSelectedImage] = useState(null);
 
-    // Add useEffect to handle stream setup when groupId changes
+    // Add useEffect to handle stream setup
     useEffect(() => {
         let stream;
 
         const setupStream = async () => {
-            if (!user || !groupId) return;
+            if (!user) return;
 
             try {
                 // Initialize stream
@@ -29,7 +28,7 @@ const PushChat = () => {
                 // Handle incoming messages
                 stream.on(CONSTANTS.STREAM.CHAT, (message) => {
                     console.log('Received message:', message);
-                    if (message.chatId === groupId && message.event === 'chat.message') {
+                    if (message.chatId === FIXED_GROUP_ID && message.event === 'chat.message') {
                         setMessages(prev => {
                             // Skip messages with invalid or empty content
                             if (!message.message?.content || message.message.content === '...') {
@@ -72,9 +71,67 @@ const PushChat = () => {
                 stream.disconnect();
             }
         };
-    }, [user, groupId]);
+    }, [user]);
 
-    // Modify connectWallet to remove stream setup (it's now in useEffect)
+    // Add the rules for token gating - only token check, no invites
+    const chatRules = {
+        entry: {
+            conditions: {
+                all: [  // Changed from 'any' to 'all' to enforce token requirement
+                    {
+                        // Check for TRAIN token balance
+                        any: [
+                            {
+                                type: 'PUSH',
+                                category: 'ERC20',
+                                subcategory: 'holder',
+                                data: {
+                                    // Use Scroll Sepolia chain ID
+                                    contract: `eip155:534351:${DAO_CONTRACT}`,
+                                    comparison: '>=',
+                                    amount: 100,
+                                    decimals: 18,
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    };
+
+    const checkTokenBalance = async (signer) => {
+        try {
+            // First create DAO contract instance
+            const daoContract = new ethers.Contract(DAO_CONTRACT, DAO_ABI, signer);
+            
+            // Get token contract address from DAO
+            const tokenAddr = await daoContract.token();
+            
+            // Create token contract instance with ERC20 interface
+            const tokenContract = new ethers.Contract(tokenAddr, [
+                "function balanceOf(address account) external view returns (uint256)",
+                "function symbol() external view returns (string)"
+            ], signer);
+
+            const userAddress = await signer.getAddress();
+            
+            // Get token balance
+            const balance = await tokenContract.balanceOf(userAddress);
+            
+            // Convert balance to number for comparison (assuming 18 decimals)
+            const balanceInTokens = Number(ethers.formatEther(balance));
+            
+            console.log('User Token Balance:', balanceInTokens);
+            console.log('Required Token Balance:', 100);
+            
+            return balanceInTokens >= 100;
+        } catch (error) {
+            console.error('Error checking token balance:', error);
+            return false;
+        }
+    };
+
     const connectWallet = async () => {
         try {
             setLoading(true);
@@ -89,14 +146,28 @@ const PushChat = () => {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
 
+            // Check token balance before proceeding
+            const hasEnoughTokens = await checkTokenBalance(signer);
+            console.log('Has enough tokens:', hasEnoughTokens);
+
+            if (!hasEnoughTokens) {
+                setStatus('Error: Insufficient TRAIN tokens. You need at least 100 TRAIN tokens to join.');
+                return;
+            }
+
             setStatus('Initializing Push Protocol...');
 
             const pushUser = await PushAPI.initialize(signer, {
-                env: CONSTANTS.ENV.STAGING
+                env: CONSTANTS.ENV.STAGING,
+                rules: chatRules
             });
 
             setUser(pushUser);
-            setStatus('Connected!');
+            
+            // Only try to join if user has enough tokens
+            await joinGroup(pushUser);
+            
+            setStatus('Connected and joined group!');
         } catch (error) {
             setStatus('Error: ' + error.message);
         } finally {
@@ -104,69 +175,71 @@ const PushChat = () => {
         }
     };
 
-    // Step 2: Create a new chat group
-    const createGroup = async () => {
+    const joinGroup = async (pushUser) => {
         try {
             setLoading(true);
-            setStatus('Creating group...');
+            setStatus('Checking eligibility to join group...');
 
-            const newGroup = await user.chat.group.create(groupName, {
-                description: 'A new chat group',
-                image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // 1x1 pixel
-                members: [], // Start with no members
-                private: false
-            });
+            // Additional token balance check before joining
+            const signer = await pushUser.signer;
+            const hasEnoughTokens = await checkTokenBalance(signer);
+            
+            if (!hasEnoughTokens) {
+                throw new Error('Insufficient TRAIN tokens. You need at least 100 TRAIN tokens to join.');
+            }
 
-            setGroupId(newGroup.chatId);
-            setStatus(`Group created! ID: ${newGroup.chatId}`);
+            setStatus('Joining group...');
+
+            // Fetch group details and join
+            const group = await pushUser.chat.group.join(FIXED_GROUP_ID);
+            setStatus(`Joined group: ${FIXED_GROUP_ID}`);
 
             // Fetch initial messages
-            const history = await user.chat.history(newGroup.chatId);
+            const history = await pushUser.chat.history(FIXED_GROUP_ID);
             setMessages(history.reverse());
         } catch (error) {
-            setStatus('Error creating group: ' + error.message);
+            console.error('Error joining group:', error);
+            setStatus('Error joining group: ' + error.message);
         } finally {
             setLoading(false);
         }
     };
 
-    // Step 3: Add member to group
-    const addMember = async () => {
-        try {
-            setLoading(true);
-            setStatus('Adding member...');
-
-            await user.chat.group.add(groupId, {
-                role: 'MEMBER',  // Either 'ADMIN' or 'MEMBER'
-                accounts: [memberAddress]  // Array of addresses to add
-            });
-
-            setStatus(`Member ${memberAddress} added!`);
-            setMemberAddress('');
-        } catch (error) {
-            setStatus('Error adding member: ' + error.message);
-        } finally {
-            setLoading(false);
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImage(reader.result);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
-    // Step 4: Send message in group
     const sendMessage = async () => {
         try {
             setLoading(true);
             setStatus('Sending message...');
 
-            const sentMessage = await user.chat.send(groupId, {
+            let messageContent = {
                 type: 'Text',
                 content: newMessage
-            });
+            };
+
+            // If there's an image, send it instead
+            if (selectedImage) {
+                messageContent = {
+                    type: 'Image',
+                    content: selectedImage
+                };
+            }
+
+            const sentMessage = await user.chat.send(FIXED_GROUP_ID, messageContent);
 
             // Add the new message to the messages array immediately
             const newMessageObj = {
                 from: user.address,
-                message: {
-                    content: newMessage
-                },
+                message: messageContent,
                 timestamp: Date.now(),
                 origin: 'self',
                 ...sentMessage
@@ -174,6 +247,7 @@ const PushChat = () => {
             setMessages(prev => [...prev, newMessageObj]);
             
             setNewMessage('');
+            setSelectedImage(null); // Reset selected image
             setStatus('Message sent!');
         } catch (error) {
             setStatus('Error sending message: ' + error.message);
@@ -182,83 +256,65 @@ const PushChat = () => {
         }
     };
 
-    // Add new function to join existing group
-    const joinGroup = async () => {
-        try {
-            setLoading(true);
-            setStatus('Joining group...');
-
-            // Fetch group details and join
-            const group = await user.chat.group.join(joinGroupId);
-            setGroupId(group.chatId);
-            setStatus(`Joined group: ${group.chatId}`);
-
-            // Fetch initial messages
-            const history = await user.chat.history(group.chatId);
-            setMessages(history.reverse());
-        } catch (error) {
-            setStatus('Error joining group: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
+    // Add custom theme
+    const blueTheme = {
+        borderRadius: {
+            ChatView: '12px',
+            chatProfile: '8px',
+            messageInput: '8px',
+            searchInput: '8px',
+            modal: '8px',
+        },
+        backgroundColor: {
+            ChatViewBackground: '#f0f8ff', // Light blue background
+            chatProfileBackground: '#ffffff',
+            messageInputBackground: '#ffffff',
+            chatSentBubbleBackground: '#1976d2', // Blue for sent messages
+            chatReceivedBubbleBackground: '#ffffff', // White for received messages
+            buttonBackground: '#1976d2', // Blue for buttons
+        },
+        textColor: {
+            chatProfileText: '#1976d2', // Blue text
+            messageInputText: '#2c3e50',
+            chatSentBubbleText: '#ffffff', // White text for sent messages
+            chatReceivedBubbleText: '#2c3e50', // Dark text for received messages
+            timestamp: '#666666',
+        },
+        border: {
+            ChatView: '1px solid #e3f2fd',
+            chatProfile: '1px solid #e3f2fd',
+            messageInput: '1px solid #e3f2fd',
+        },
+        iconColor: {
+            emoji: '#1976d2',
+            attachment: '#1976d2',
+            sendButton: '#1976d2',
+        },
     };
-
-    // Add new GroupInfo component
-    const GroupInfo = () => (
-        <div style={{
-            margin: '10px 0',
-            padding: '15px',
-            background: '#e3f2fd',
-            borderRadius: '5px',
-            border: '1px solid #2196F3'
-        }}>
-            <h3 style={{ margin: '0 0 10px 0' }}>Current Group Information</h3>
-            <p style={{ margin: '5px 0' }}>
-                <strong>Group ID:</strong> 
-                <span style={{ 
-                    backgroundColor: '#fff',
-                    padding: '5px 10px',
-                    borderRadius: '3px',
-                    marginLeft: '10px',
-                    fontFamily: 'monospace'
-                }}>
-                    {groupId}
-                </span>
-                <button
-                    onClick={() => navigator.clipboard.writeText(groupId)}
-                    style={{
-                        marginLeft: '10px',
-                        padding: '5px 10px',
-                        background: '#2196F3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Copy ID
-                </button>
-            </p>
-            <p style={{ 
-                fontSize: '0.9em',
-                color: '#666',
-                marginTop: '10px'
-            }}>
-                Share this Group ID with others to let them join the chat
-            </p>
-        </div>
-    );
 
     return (
         <div style={{
             maxWidth: '800px',
             margin: '0 auto',
             padding: '20px',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            background: '#ffffff'
         }}>
-            <h1>Push Protocol Group Chat</h1>
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '20px',
+                gap: '10px'
+            }}>
+                {/* Push Logo */}
+                <img 
+                    src="/push-logo.svg" 
+                    alt="Push Protocol" 
+                    style={{ height: '40px' }}
+                />
+                <h1 style={{ color: '#1976d2', margin: 0 }}>Push Protocol Chat</h1>
+            </div>
 
-            {/* Add connected wallet address display */}
             {user && (
                 <div style={{
                     margin: '10px 0',
@@ -298,116 +354,8 @@ const PushChat = () => {
                 )}
             </div>
 
-            {user && !groupId && (
-                <div style={{
-                    margin: '20px 0',
-                    padding: '20px',
-                    border: '1px solid #ddd',
-                    borderRadius: '5px'
-                }}>
-                    <div style={{ marginBottom: '20px' }}>
-                        <h2>Join Existing Group</h2>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                type="text"
-                                placeholder="Enter group ID"
-                                value={joinGroupId}
-                                onChange={(e) => setJoinGroupId(e.target.value)}
-                                disabled={loading}
-                                style={{
-                                    padding: '10px',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '5px',
-                                    flexGrow: 1
-                                }}
-                            />
-                            <button
-                                onClick={joinGroup}
-                                disabled={loading || !joinGroupId}
-                                style={{
-                                    padding: '10px 20px',
-                                    background: loading || !joinGroupId ? '#cccccc' : '#2196F3',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '5px',
-                                    cursor: loading || !joinGroupId ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                Join Group
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style={{ marginTop: '30px' }}>
-                        <h2>Or Create New Group</h2>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                type="text"
-                                placeholder="Enter group name"
-                                value={groupName}
-                                onChange={(e) => setGroupName(e.target.value)}
-                                disabled={loading}
-                                style={{
-                                    padding: '10px',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '5px',
-                                    flexGrow: 1
-                                }}
-                            />
-                            <button
-                                onClick={createGroup}
-                                disabled={loading || !groupName}
-                                style={{
-                                    padding: '10px 20px',
-                                    background: loading || !groupName ? '#cccccc' : '#2196F3',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '5px',
-                                    cursor: loading || !groupName ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                Create Group
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {groupId && <GroupInfo />}
-
-            {groupId && (
+            {user && (
                 <div style={{ marginTop: '20px' }}>
-                    <div style={{ marginBottom: '20px' }}>
-                        <input
-                            type="text"
-                            placeholder="Enter member's wallet address"
-                            value={memberAddress}
-                            onChange={(e) => setMemberAddress(e.target.value)}
-                            disabled={loading}
-                            style={{
-                                padding: '10px',
-                                border: '1px solid #ddd',
-                                borderRadius: '5px',
-                                flexGrow: 1
-                            }}
-                        />
-                        <button
-                            onClick={addMember}
-                            disabled={loading || !memberAddress}
-                            style={{
-                                padding: '10px 20px',
-                                background: loading || !memberAddress ? '#cccccc' : '#2196F3',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '5px',
-                                cursor: loading || !memberAddress ? 'not-allowed' : 'pointer',
-                                marginLeft: '10px'
-                            }}
-                        >
-                            Add Member
-                        </button>
-                    </div>
-
                     <div style={{
                         height: '400px',
                         overflowY: 'auto',
@@ -419,7 +367,6 @@ const PushChat = () => {
                         flexDirection: 'column'
                     }}>
                         {messages.map((msg, index) => {
-                            // Skip messages with invalid or empty content
                             if (!msg.message?.content || msg.message.content === '...') {
                                 return null;
                             }
@@ -427,14 +374,11 @@ const PushChat = () => {
                             const isOwnMessage = msg.origin === 'self';
                             const messageTime = msg.timestamp ? new Date(Number(msg.timestamp)).toLocaleTimeString() : '';
                             const messageContent = msg.message?.content || '';
-                            
-                            // Extract wallet address from DID, removing the 'eip155:' prefix
                             const walletAddress = msg.from?.split(':').pop() || '';
-                            
-                            // Show full address for own messages, shortened for others
                             const displayAddress = isOwnMessage 
                                 ? walletAddress 
                                 : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+                            const isImage = msg.message?.type === 'Image';
 
                             return (
                                 <div
@@ -461,7 +405,25 @@ const PushChat = () => {
                                         wordBreak: 'break-word',
                                         marginBottom: '5px'
                                     }}>
-                                        {messageContent}
+                                        {isImage ? (
+                                            <img 
+                                                src={messageContent.startsWith('data:') 
+                                                    ? messageContent 
+                                                    : `data:image/png;base64,${messageContent}`} 
+                                                alt="Sent image" 
+                                                style={{
+                                                    maxWidth: '100%',
+                                                    maxHeight: '200px',
+                                                    borderRadius: '5px'
+                                                }}
+                                                onError={(e) => {
+                                                    console.error('Image failed to load:', messageContent);
+                                                    e.target.src = '/fallback-image.png'; // Optional: show fallback image
+                                                }}
+                                            />
+                                        ) : (
+                                            messageContent
+                                        )}
                                     </div>
                                     <div style={{
                                         fontSize: '11px',
@@ -477,32 +439,101 @@ const PushChat = () => {
 
                     <div style={{
                         display: 'flex',
-                        gap: '10px'
+                        gap: '10px',
+                        alignItems: 'center'
                     }}>
+                        <div style={{
+                            position: 'relative',
+                            flexGrow: 1,
+                            border: '1px solid #ddd',
+                            borderRadius: '5px',
+                            padding: '10px',
+                            minHeight: '40px'
+                        }}>
+                            {selectedImage ? (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
+                                }}>
+                                    <img 
+                                        src={selectedImage} 
+                                        alt="Selected" 
+                                        style={{
+                                            maxHeight: '60px',
+                                            maxWidth: '100px',
+                                            borderRadius: '5px',
+                                            objectFit: 'cover'
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => setSelectedImage(null)}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '-8px',
+                                            right: '-8px',
+                                            background: '#ff4444',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '20px',
+                                            height: '20px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ) : (
+                                <input
+                                    type="text"
+                                    placeholder={selectedImage ? '' : "Type your message"}
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && !loading && sendMessage()}
+                                    disabled={loading || selectedImage}
+                                    style={{
+                                        width: '100%',
+                                        border: 'none',
+                                        outline: 'none',
+                                        background: 'transparent'
+                                    }}
+                                />
+                            )}
+                        </div>
                         <input
-                            type="text"
-                            placeholder="Type your message"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && !loading && sendMessage()}
-                            disabled={loading}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            disabled={loading || newMessage.length > 0}
+                            style={{ display: 'none' }}
+                            id="image-input"
+                        />
+                        <label 
+                            htmlFor="image-input"
                             style={{
                                 padding: '10px',
-                                border: '1px solid #ddd',
+                                background: loading || newMessage.length > 0 ? '#cccccc' : '#2196F3',
+                                color: 'white',
                                 borderRadius: '5px',
-                                flexGrow: 1
+                                cursor: loading || newMessage.length > 0 ? 'not-allowed' : 'pointer'
                             }}
-                        />
+                        >
+                            📷
+                        </label>
                         <button
                             onClick={sendMessage}
-                            disabled={loading || !newMessage}
+                            disabled={loading || (!newMessage && !selectedImage)}
                             style={{
                                 padding: '10px 20px',
-                                background: loading || !newMessage ? '#cccccc' : '#2196F3',
+                                background: loading || (!newMessage && !selectedImage) ? '#cccccc' : '#2196F3',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '5px',
-                                cursor: loading || !newMessage ? 'not-allowed' : 'pointer'
+                                cursor: loading || (!newMessage && !selectedImage) ? 'not-allowed' : 'pointer'
                             }}
                         >
                             Send
