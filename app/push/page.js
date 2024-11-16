@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { PushAPI, CONSTANTS } from '@pushprotocol/restapi';
 import { ethers } from 'ethers';
 import { DAO_CONTRACT, DAO_ABI } from '../../utils/DAOconstants';
+import Image from 'next/image';
+import styles from '../../styles/push.css';
+import { Header } from '../../components/Header';
 
 const PushChat = () => {
     const FIXED_GROUP_ID = '7511131ece0491b5e0e18e1a643b88c924a5a9192195b9aed627b4c9322bf81c';
@@ -293,254 +296,136 @@ const PushChat = () => {
     };
 
     return (
-        <div style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            padding: '20px',
-            fontFamily: 'Arial, sans-serif',
-            background: '#ffffff'
-        }}>
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '20px',
-                gap: '10px'
-            }}>
-                {/* Push Logo */}
-                <img 
-                    src="/push-logo.svg" 
-                    alt="Push Protocol" 
-                    style={{ height: '40px' }}
-                />
-                <h1 style={{ color: '#1976d2', margin: 0 }}>Push Protocol Chat</h1>
-            </div>
-
-            {user && (
-                <div style={{
-                    margin: '10px 0',
-                    padding: '10px',
-                    background: '#f5f5f5',
-                    borderRadius: '5px'
-                }}>
-                    Connected: {user.address?.slice(0, 6)}...{user.address?.slice(-4)}
+        <div>
+            <Header />
+            <div className="chat-container">
+                <div className="chat-header">
+                    <Image src="/push-protocol.png" alt="Push Protocol" width={40} height={40} />
+                    <h1>Push Protocol Chat</h1>
                 </div>
-            )}
 
-            <div style={{
-                margin: '20px 0',
-                padding: '10px',
-                background: '#f0f0f0',
-                borderRadius: '5px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-            }}>
-                Status: {status}
-                {!user && (
-                    <button
-                        onClick={connectWallet}
-                        disabled={loading}
-                        style={{
-                            background: loading ? '#cccccc' : '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            padding: '10px 20px',
-                            borderRadius: '5px',
-                            cursor: loading ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        Connect Wallet
-                    </button>
-                )}
-            </div>
-
-            {user && (
-                <div style={{ marginTop: '20px' }}>
-                    <div style={{
-                        height: '400px',
-                        overflowY: 'auto',
-                        border: '1px solid #ddd',
-                        padding: '10px',
-                        margin: '20px 0',
-                        borderRadius: '5px',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
-                        {messages.map((msg, index) => {
+                {/* Messages container with conditional styling */}
+                <div className={`messages-container ${!user ? 'inactive' : ''}`}>
+                    {user ? (
+                        messages.map((msg, index) => {
                             if (!msg.message?.content || msg.message.content === '...') {
                                 return null;
                             }
-
+        
                             const isOwnMessage = msg.origin === 'self';
-                            const messageTime = msg.timestamp ? new Date(Number(msg.timestamp)).toLocaleTimeString() : '';
+                            const messageTime = msg.timestamp 
+                                ? new Date(Number(msg.timestamp)).toLocaleTimeString() 
+                                : '';
                             const messageContent = msg.message?.content || '';
                             const walletAddress = msg.from?.split(':').pop() || '';
                             const displayAddress = isOwnMessage 
                                 ? walletAddress 
                                 : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
                             const isImage = msg.message?.type === 'Image';
-
+        
                             return (
                                 <div
                                     key={index}
-                                    style={{
-                                        margin: '10px 0',
-                                        padding: '10px',
-                                        borderRadius: '5px',
-                                        maxWidth: '80%',
-                                        background: isOwnMessage ? '#1976d2' : '#f5f5f5',
-                                        color: isOwnMessage ? 'white' : 'black',
-                                        marginLeft: isOwnMessage ? 'auto' : '0',
-                                        alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
-                                    }}
+                                    className={`message ${isOwnMessage ? 'message-self' : 'message-other'}`}
                                 >
-                                    <div style={{
-                                        fontSize: '12px',
-                                        color: isOwnMessage ? '#e3f2fd' : '#666',
-                                        marginBottom: '5px'
-                                    }}>
-                                        {displayAddress}
-                                    </div>
-                                    <div style={{ 
-                                        wordBreak: 'break-word',
-                                        marginBottom: '5px'
-                                    }}>
+                                    <div className="message-address">{displayAddress}</div>
+                                    <div className="message-content">
                                         {isImage ? (
-                                            <img 
+                                            <img
                                                 src={messageContent.startsWith('data:') 
                                                     ? messageContent 
-                                                    : `data:image/png;base64,${messageContent}`} 
-                                                alt="Sent image" 
-                                                style={{
-                                                    maxWidth: '100%',
-                                                    maxHeight: '200px',
-                                                    borderRadius: '5px'
-                                                }}
+                                                    : `data:image/png;base64,${messageContent}`}
+                                                alt="Sent image"
+                                                className="message-image"
                                                 onError={(e) => {
                                                     console.error('Image failed to load:', messageContent);
-                                                    e.target.src = '/fallback-image.png'; // Optional: show fallback image
+                                                    e.target.src = '/fallback-image.png';
                                                 }}
                                             />
                                         ) : (
                                             messageContent
                                         )}
                                     </div>
-                                    <div style={{
-                                        fontSize: '11px',
-                                        color: isOwnMessage ? '#e3f2fd' : '#999',
-                                        textAlign: 'right'
-                                    }}>
-                                        {messageTime}
-                                    </div>
+                                    <div className="message-time">{messageTime}</div>
                                 </div>
                             );
-                        })}
-                    </div>
-
-                    <div style={{
-                        display: 'flex',
-                        gap: '10px',
-                        alignItems: 'center'
-                    }}>
-                        <div style={{
-                            position: 'relative',
-                            flexGrow: 1,
-                            border: '1px solid #ddd',
-                            borderRadius: '5px',
-                            padding: '10px',
-                            minHeight: '40px'
-                        }}>
-                            {selectedImage ? (
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px'
-                                }}>
-                                    <img 
-                                        src={selectedImage} 
-                                        alt="Selected" 
-                                        style={{
-                                            maxHeight: '60px',
-                                            maxWidth: '100px',
-                                            borderRadius: '5px',
-                                            objectFit: 'cover'
-                                        }}
-                                    />
-                                    <button
-                                        onClick={() => setSelectedImage(null)}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '-8px',
-                                            right: '-8px',
-                                            background: '#ff4444',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '50%',
-                                            width: '20px',
-                                            height: '20px',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            ) : (
-                                <input
-                                    type="text"
-                                    placeholder={selectedImage ? '' : "Type your message"}
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && !loading && sendMessage()}
-                                    disabled={loading || selectedImage}
-                                    style={{
-                                        width: '100%',
-                                        border: 'none',
-                                        outline: 'none',
-                                        background: 'transparent'
-                                    }}
-                                />
-                            )}
+                        })
+                    ) : (
+                        <div className="placeholder-text">
+                            Connect wallet to start chatting
                         </div>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            disabled={loading || newMessage.length > 0}
-                            style={{ display: 'none' }}
-                            id="image-input"
-                        />
-                        <label 
-                            htmlFor="image-input"
-                            style={{
-                                padding: '10px',
-                                background: loading || newMessage.length > 0 ? '#cccccc' : '#2196F3',
-                                color: 'white',
-                                borderRadius: '5px',
-                                cursor: loading || newMessage.length > 0 ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            📷
-                        </label>
-                        <button
-                            onClick={sendMessage}
-                            disabled={loading || (!newMessage && !selectedImage)}
-                            style={{
-                                padding: '10px 20px',
-                                background: loading || (!newMessage && !selectedImage) ? '#cccccc' : '#2196F3',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '5px',
-                                cursor: loading || (!newMessage && !selectedImage) ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            Send
-                        </button>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                {/* Moved connection status below messages */}
+                <div className={`input-section ${!user ? 'pre-connect' : ''}`}>
+                    {user ? (
+                        <div className="input-container">
+                            <div className="message-input-wrapper">
+                                {selectedImage ? (
+                                    <div className="selected-image-container">
+                                        <img 
+                                            src={selectedImage} 
+                                            alt="Selected"
+                                            className="selected-image"
+                                        />
+                                        <button
+                                            onClick={() => setSelectedImage(null)}
+                                            className="remove-image-button"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        placeholder="Type your message"
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && !loading && sendMessage()}
+                                        disabled={loading || selectedImage}
+                                        className="message-input"
+                                    />
+                                )}
+                            </div>
+                            
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                disabled={loading || newMessage.length > 0}
+                                style={{ display: 'none' }}
+                                id="image-input"
+                            />
+                            <label 
+                                htmlFor="image-input"
+                                className="image-button"
+                            >
+                                📷
+                            </label>
+                            
+                            <button
+                                onClick={sendMessage}
+                                disabled={loading || (!newMessage && !selectedImage)}
+                                className="send-button"
+                            >
+                                Send
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="connection-status">
+                            <span className="status-text">Status: {status}</span>
+                            <button
+                                onClick={connectWallet}
+                                disabled={loading}
+                                className="connect-button"
+                            >
+                                Connect Wallet
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

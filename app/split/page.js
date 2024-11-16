@@ -398,7 +398,7 @@ export default function Split() {
               : 'train-button-enabled'
           }`}
         >
-          {isLoading ? 'Processing...' : 'Train Model'}
+          {isLoading ? 'Processing...' : 'Split Dataset'}
         </button>
   
         {transactionStatus && (

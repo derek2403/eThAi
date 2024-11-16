@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { DAO_CONTRACT, DAO_ABI } from '@/utils/DAOconstants';
+import { Header } from '../../components/Header';
+import styles from '../../styles/dao.css';
 
 export default function DatasetTrainingDAOUI() {
     const [provider, setProvider] = useState(null);
@@ -148,139 +150,174 @@ export default function DatasetTrainingDAOUI() {
     };
 
     return (
-        <div className="container mx-auto p-4 max-w-4xl">
-            <h1 className="text-3xl font-bold mb-6">Dataset Training DAO</h1>
-
-            {!account ? (
-                <button
-                    onClick={connectWallet}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                >
-                    Connect Wallet
-                </button>
-            ) : (
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4">Account Info</h2>
-                        <div className="space-y-2">
-                            <p>Connected: {account}</p>
-                            <p>Balance: {tokenBalance}</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4">Record Training</h2>
-                        <div className="space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Dataset ID"
-                                value={datasetId}
-                                onChange={(e) => setDatasetId(e.target.value)}
-                                className="w-full p-2 border rounded"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Model Type"
-                                value={modelType}
-                                onChange={(e) => setModelType(e.target.value)}
-                                className="w-full p-2 border rounded"
-                            />
-                            <button
-                                onClick={recordTraining}
-                                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                            >
-                                Submit Training
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4">Create Proposal</h2>
-                        <div className="space-y-4">
-                            <textarea
-                                placeholder="Proposal Description"
-                                value={proposalDesc}
-                                onChange={(e) => setProposalDesc(e.target.value)}
-                                className="w-full p-2 border rounded"
-                                rows="3"
-                            />
-                            <button
-                                onClick={createProposal}
-                                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            >
-                                Create Proposal
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4">Your Trainings</h2>
-                        <div className="space-y-2">
-                            {trainings.map((training, index) => (
-                                <div key={index} className="p-2 border rounded">
-                                    <p>Dataset: {training.datasetId}</p>
-                                    <p>Model: {training.modelType}</p>
-                                    <p>Time: {new Date(Number(training.timestamp) * 1000).toLocaleString()}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4">Proposals</h2>
-                        <p className="text-gray-600 mb-4">
-                            All proposals have a voting period of 3 days from creation.
-                            Members can vote for or against during this period.
-                        </p>
-                        <div className="space-y-4">
-                            {proposals.map((proposal) => (
-                                <div key={proposal.id} className="p-4 border rounded">
-                                    <div className="mb-3">
-                                        <span className="text-sm text-gray-500">Proposal #{proposal.id}</span>
-                                        <h3 className="font-bold text-lg mt-1">{proposal.description}</h3>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 mb-3">
-                                        <div>
-                                            <p className="text-sm text-gray-600">For:</p>
-                                            <p className="font-semibold">{proposal.forVotes ? ethers.formatEther(proposal.forVotes) : '0'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">Against:</p>
-                                            <p className="font-semibold">{proposal.againstVotes ? ethers.formatEther(proposal.againstVotes) : '0'}</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-3">
-                                        Ends: {new Date(Number(proposal.endTime) * 1000).toLocaleString()}
-                                    </p>
-                                    {!proposal.executed && (
-                                        <div className="mt-2 space-x-2">
-                                            <button
-                                                onClick={() => vote(proposal.id, true)}
-                                                className="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded"
-                                            >
-                                                Vote For
-                                            </button>
-                                            <button
-                                                onClick={() => vote(proposal.id, false)}
-                                                className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
-                                            >
-                                                Vote Against
-                                            </button>
-
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {status && (
-                        <div className="mt-4 p-4 bg-gray-100 rounded">
-                            <p>{status}</p>
-                        </div>
-                    )}
+        <div>
+            <Header />
+            <div className="dao-container">
+                <div className="content-wrapper">
+            <div className="page-header">
+              <h1 className="page-title">Dataset Training DAO</h1>
+              {account && (
+                <div className="account-badge">
+                  <span className="account-indicator"></span>
+                  <span className="account-address">{account?.slice(0, 6)}...{account?.slice(-4)}</span>
+                  <span className="account-balance">{tokenBalance} tokens</span>
                 </div>
+              )}
+            </div>
+      
+            {!account ? (
+              <div className="connect-section">
+                <button onClick={connectWallet} className="connect-button">
+                  Connect Wallet
+                </button>
+              </div>
+            ) : (
+              <div className="dashboard-layout">
+                <div className="actions-row">
+                  <div className="action-card">
+                    <div className="card-header">
+                      <h2 className="card-title">
+                        <span className="card-icon">📊</span>
+                        Record Training
+                      </h2>
+                    </div>
+                    <div className="card-content">
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          placeholder="Dataset ID"
+                          value={datasetId}
+                          onChange={(e) => setDatasetId(e.target.value)}
+                          className="input-field"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Model Type"
+                          value={modelType}
+                          onChange={(e) => setModelType(e.target.value)}
+                          className="input-field"
+                        />
+                        <button
+                          onClick={recordTraining}
+                          className="action-button success-button"
+                        >
+                          Submit Training
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+      
+                  <div className="action-card">
+                    <div className="card-header">
+                      <h2 className="card-title">
+                        <span className="card-icon">📝</span>
+                        Create Proposal
+                      </h2>
+                    </div>
+                    <div className="card-content">
+                      <div className="input-group">
+                        <textarea
+                          placeholder="Proposal Description"
+                          value={proposalDesc}
+                          onChange={(e) => setProposalDesc(e.target.value)}
+                          className="input-field textarea-field"
+                        />
+                        <button
+                          onClick={createProposal}
+                          className="action-button primary-button"
+                        >
+                          Create Proposal
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+      
+                <div className="trainings-section">
+                  <div className="section-card">
+                    <div className="card-header">
+                      <h2 className="card-title">
+                        <span className="card-icon">🎯</span>
+                        Your Trainings
+                      </h2>
+                    </div>
+                    <div className="card-content trainings-grid">
+                      {trainings.map((training, index) => (
+                        <div key={index} className="training-item">
+                          <div className="training-content">
+                            <div className="training-header">
+                              <span className="training-id">Dataset: {training.datasetId}</span>
+                              <span className="training-type">{training.modelType}</span>
+                            </div>
+                            <div className="training-time">
+                              {new Date(Number(training.timestamp) * 1000).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+      
+                <div className="proposals-section">
+                  <div className="section-card">
+                    <div className="card-header sticky-header">
+                      <h2 className="card-title">
+                        <span className="card-icon">🗳️</span>
+                        Active Proposals
+                      </h2>
+                    </div>
+                    <div className="proposals-scroll">
+                      {proposals.map((proposal) => (
+                        <div key={proposal.id} className="proposal-card">
+                          <div className="proposal-header">
+                            <span className="proposal-id">Proposal #{proposal.id}</span>
+                            <h3 className="proposal-description">{proposal.description}</h3>
+                          </div>
+                          <div className="votes-grid">
+                            <div className="vote-box">
+                              <div className="vote-label">For</div>
+                              <div className="vote-value">
+                                {proposal.forVotes ? ethers.formatEther(proposal.forVotes) : '0'}
+                              </div>
+                            </div>
+                            <div className="vote-box">
+                              <div className="vote-label">Against</div>
+                              <div className="vote-value">
+                                {proposal.againstVotes ? ethers.formatEther(proposal.againstVotes) : '0'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="proposal-footer">
+                            <div className="proposal-deadline">
+                              Ends: {new Date(Number(proposal.endTime) * 1000).toLocaleString()}
+                            </div>
+                            {!proposal.executed && (
+                              <div className="vote-actions">
+                                <button
+                                  onClick={() => vote(proposal.id, true)}
+                                  className="vote-button vote-for"
+                                >
+                                  Vote For
+                                </button>
+                                <button
+                                  onClick={() => vote(proposal.id, false)}
+                                  className="vote-button vote-against"
+                                >
+                                  Vote Against
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
+          </div>
+                </div>
         </div>
     );
 }
