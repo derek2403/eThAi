@@ -1,6 +1,8 @@
 // app/page.js
 'use client';
 import { useState, useEffect } from 'react';
+import { Header } from '../../components/Header';
+import styles from '../../styles/dataset.css';
 
 const API_BASE = 'https://nillion-storage-apis-v0.onrender.com';
 const APP_ID = 'b478ac1e-1870-423f-81c3-a76bf72f394a';
@@ -152,101 +154,139 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Nillion Storage Demo</h1>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">User Information</h2>
-          <p className="mb-2"><strong>User Seed:</strong> {USER_SEED}</p>
-          <p><strong>User ID:</strong> {userId || 'Loading...'}</p>
+    <div className="nillion-container">
+      <Header />
+      <div className="page-header">
+        <h1>Nillion Storage Dashboard</h1>
+        <div className="header-underline"></div>
+      </div>
+  
+      {error && (
+        <div className="error-banner">
+          <div className="error-icon">⚠️</div>
+          <p>{error}</p>
         </div>
-
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Dataset Controls</h2>
-          <div className="flex flex-col space-y-4">
-            <div className="flex flex-col space-y-2">
-              <label htmlFor="fileUpload" className="text-sm font-medium text-gray-700">
-                Upload JSON Dataset
-              </label>
-              <input
-                id="fileUpload"
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="border rounded p-2"
-              />
+      )}
+  
+      <div className="dashboard-layout">
+        <div className="main-column">
+          <div className="info-card">
+            <div className="card-header">
+              <div className="header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h2>User Information</h2>
             </div>
-            <p><strong>Dataset Status:</strong> {dataset ? `${dataset.length} items loaded` : 'No file uploaded'}</p>
-            {uploadedFile && (
-              <p className="text-sm text-gray-600">
-                <strong>File:</strong> {uploadedFile.name}
-              </p>
-            )}
-            <button
-              onClick={storeDatasetInNillion}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400"
-              disabled={loading || !dataset}
-            >
-              Upload Dataset to Nillion
-            </button>
-            {uploadStatus && (
-              <p className="text-sm text-gray-600">{uploadStatus}</p>
-            )}
+            <div className="info-content">
+              <div className="info-row">
+                <span className="info-label">User Seed:</span>
+                <span className="info-value monospace">{USER_SEED}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">User ID:</span>
+                <span className="info-value monospace">{userId || 'Loading...'}</span>
+              </div>
+            </div>
+          </div>
+  
+          <div className="upload-card">
+            <div className="card-header">
+              <div className="header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <h2>Dataset Controls</h2>
+            </div>
+            <div className="upload-content">
+              <div className="file-upload-container">
+                <label htmlFor="fileUpload">Upload JSON Dataset</label>
+                <input
+                  id="fileUpload"
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="file-input"
+                />
+                {uploadedFile && (
+                  <div className="file-info">
+                    <span className="file-name">{uploadedFile.name}</span>
+                    <span className="file-status">
+                      {dataset ? `${dataset.length} items loaded` : 'Processing...'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={storeDatasetInNillion}
+                className={`upload-button ${(!dataset || loading) ? 'disabled' : ''}`}
+                disabled={loading || !dataset}
+              >
+                {loading ? 'Processing...' : 'Upload to Nillion'}
+              </button>
+              {uploadStatus && (
+                <div className="status-message">{uploadStatus}</div>
+              )}
+            </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Store IDs</h2>
-          {storeIds.length > 0 ? (
-            <ul className="space-y-2">
-              {storeIds.map((store, index) => (
-                <li key={index} className="border p-4 rounded">
-                  <p><strong>Store ID:</strong> {store.store_id}</p>
-                  <p><strong>Secret Name:</strong> {store.secret_name}</p>
-                  <button
-                    onClick={async () => {
-                      const secret = await retrieveSecret(store.store_id, store.secret_name);
-                      if (secret) {
-                        setSecrets(prev => [...prev, { id: store.store_id, name: store.secret_name, data: secret }]);
-                      }
-                    }}
-                    className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
-                    disabled={loading}
-                  >
-                    Retrieve Secret
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No store IDs found</p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Retrieved Secrets</h2>
-          {secrets.length > 0 ? (
-            <ul className="space-y-2">
-              {secrets.map((secret, index) => (
-                <li key={index} className="border p-4 rounded">
-                  <p><strong>Store ID:</strong> {secret.id}</p>
-                  <p><strong>Secret Name:</strong> {secret.name}</p>
-                  <pre className="mt-2 bg-gray-50 p-4 rounded overflow-x-auto">
-                    {JSON.stringify(secret.data, null, 2)}
-                  </pre>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No secrets retrieved yet</p>
-          )}
+  
+        <div className="side-column">
+          <div className="stores-card">
+            <div className="card-header sticky-header">
+              <div className="header-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.29 7 12 12 20.71 7" />
+                  <line x1="12" y1="22" x2="12" y2="12" />
+                </svg>
+              </div>
+              <h2>Store IDs</h2>
+            </div>
+            <div className="stores-scroll">
+              {storeIds.length > 0 ? (
+                <div className="stores-list">
+                  {storeIds.map((store, index) => (
+                    <div key={index} className="store-item">
+                      <div className="store-info">
+                        <div className="store-row">
+                          <span className="store-label">Store ID:</span>
+                          <span className="store-value monospace">{store.store_id}</span>
+                        </div>
+                        <div className="store-row">
+                          <span className="store-label">Secret Name:</span>
+                          <span className="store-value">{store.secret_name}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const secret = await retrieveSecret(store.store_id, store.secret_name);
+                          if (secret) {
+                            setSecrets(prev => [...prev, { 
+                              id: store.store_id, 
+                              name: store.secret_name, 
+                              data: secret 
+                            }]);
+                          }
+                        }}
+                        className="retrieve-button"
+                        disabled={loading}
+                      >
+                        Retrieve Secret
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">No store IDs found</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

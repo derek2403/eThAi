@@ -14,5 +14,7 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@nextui-org/react')
+  ],
 } satisfies Config;
