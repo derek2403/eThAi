@@ -12,9 +12,8 @@ import {
   Name,
   Identity,
 } from '@coinbase/onchainkit/identity';
-
-
-import { color } from '@coinbase/onchainkit/theme';
+//import { EthBalance } from '@coinbase/onchainkit/balance';
+import { WalletDropdownLink } from '@coinbase/onchainkit/wallet';
 
 export function WalletComponents() {
   return (
@@ -28,8 +27,15 @@ export function WalletComponents() {
           <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
             <Avatar />
             <Name />
-            <Address className={color.foregroundMuted} />
+            <Address />
+
           </Identity>
+          <WalletDropdownLink
+            icon="wallet"
+            href="https://keys.coinbase.com"
+          >
+            Wallet
+          </WalletDropdownLink>
           <WalletDropdownDisconnect />
         </WalletDropdown>
       </Wallet>
