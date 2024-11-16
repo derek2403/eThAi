@@ -163,9 +163,12 @@ const PushChat = () => {
 
             // Add the new message to the messages array immediately
             const newMessageObj = {
-                fromDID: user.address,
-                messageContent: newMessage,
+                from: user.address,
+                message: {
+                    content: newMessage
+                },
                 timestamp: Date.now(),
+                origin: 'self',
                 ...sentMessage
             };
             setMessages(prev => [...prev, newMessageObj]);
@@ -425,9 +428,13 @@ const PushChat = () => {
                             const messageTime = msg.timestamp ? new Date(Number(msg.timestamp)).toLocaleTimeString() : '';
                             const messageContent = msg.message?.content || '';
                             
-                            // Extract wallet address from DID
+                            // Extract wallet address from DID, removing the 'eip155:' prefix
                             const walletAddress = msg.from?.split(':').pop() || '';
-                            const shortAddress = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+                            
+                            // Show full address for own messages, shortened for others
+                            const displayAddress = isOwnMessage 
+                                ? walletAddress 
+                                : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
 
                             return (
                                 <div
@@ -448,7 +455,7 @@ const PushChat = () => {
                                         color: isOwnMessage ? '#e3f2fd' : '#666',
                                         marginBottom: '5px'
                                     }}>
-                                        {shortAddress}
+                                        {displayAddress}
                                     </div>
                                     <div style={{ 
                                         wordBreak: 'break-word',
