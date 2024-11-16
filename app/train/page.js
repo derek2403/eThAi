@@ -8,7 +8,6 @@ import pako from 'pako';
 import { saveModelLocally } from '../../utils/modelStorage';
 import { WalletComponents } from '../../components/Wallet';
 
-const AMOY_CHAIN_ID = "0x13882"; // Polygon Amoy testnet
 
 const compressModelData = async (model) => {
     try {
@@ -58,72 +57,79 @@ export default function Train() {
                 setTrainingResults(results);
                 setIsTraining(false);
 
-                if (window.ethereum) {
-                    // Network check and storage logic
-                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                    if (chainId !== AMOY_CHAIN_ID) {
-                        setStoreError('Please connect to Polygon Amoy testnet');
-                        return;
-                    }
+                // Debug log
+                console.log('Model structure:', {
+                    tree: model.tree,
+                    labelEncoder: model.labelEncoder
+                });
 
-                    const provider = new ethers.BrowserProvider(window.ethereum);
-                    const signer = await provider.getSigner();
-                    const address = await signer.getAddress();
-                    setTrainerAddress(address);
+                const timestamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
+                const modelName = `WM_${timestamp}`;
+                const datasetName = split.datasets[0].name || "Weather_2023";
 
-                    const balance = await provider.getBalance(address);
-                    const balanceInEther = Number(ethers.formatEther(balance));
-                    
-                    if (balanceInEther <= 0) {
-                        setStoreError('Insufficient funds. Please add MATIC to your wallet.');
-                        return;
-                    }
+                // Debug logs
+                console.log('Raw model:', model);
+                console.log('Model tree:', model.tree);
+                console.log('Model labelEncoder:', model.labelEncoder);
 
-                    const timestamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
-                    const modelName = `WM_${timestamp}`;
-                    const datasetName = split.datasets[0].name || "Weather_2023";
-                    
-                    try {
-                        // Compress and save model
-                        const compressedModel = await compressModelData(model);
-                        const modelPath = await saveModelLocally(modelName, compressedModel);
-                        console.log('Model saved locally at:', modelPath);
+                const modelData = {
+                    tree: model.tree || {},
+                    labelEncoder: model.labelEncoder || {}
+                };
+                console.log('Model data to be sent:', modelData);
 
-                        // Store on blockchain
-                        const txHash = await storeModelOnChain(modelName, datasetName, {
-                            mse: results.mse || 0.000001,
-                            rmse: results.rmse || 0.001,
-                            rSquared: results.rSquared || 0.5
-                        });
+                const saveModelResponse = await fetch('/api/saveModel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        modelName,
+                        modelData
+                    })
+                });
 
-                        console.log('Model stored on chain:', txHash);
+                // Log the response for debugging
+                console.log('API Response:', await saveModelResponse.clone().json());
 
-                        // Update localStorage
-                        splits[splitIndex] = {
-                            ...split,
-                            trainedBy: address,
-                            metrics: {
-                                mse: results.mse,
-                                rmse: results.rmse,
-                                rSquared: results.rSquared
-                            },
-                            modelName,
-                            txHash
-                        };
-                        localStorage.setItem('splitDatasets', JSON.stringify(splits));
-
-                        router.push('/results');
-
-                    } catch (txError) {
-                        console.error('Transaction error:', txError);
-                        setStoreError(txError.message);
-                    }
+                if (!saveModelResponse.ok) {
+                    const errorData = await saveModelResponse.json();
+                    throw new Error(errorData.message || 'Failed to save model');
                 }
 
+                const { path: modelPath } = await saveModelResponse.json();
+                console.log('Model saved locally at:', modelPath);
+
+                // Compress and store on blockchain
+                const compressedModel = await compressModelData(model);
+                const txHash = await storeModelOnChain(modelName, datasetName, {
+                    mse: results.mse || 0.000001,
+                    rmse: results.rmse || 0.001,
+                    rSquared: results.rSquared || 0.5
+                });
+
+                console.log('Model stored on chain:', txHash);
+
+                // Update localStorage
+                splits[splitIndex] = {
+                    ...split,
+                    trainedBy: address,
+                    metrics: {
+                        mse: results.mse,
+                        rmse: results.rmse,
+                        rSquared: results.rSquared
+                    },
+                    modelName,
+                    txHash
+                };
+                localStorage.setItem('splitDatasets', JSON.stringify(splits));
+
+                router.push('/results');
+
             } catch (error) {
-                console.error('Training error:', error);
-                setIsTraining(false);
+                console.error('Error:', error);
                 setStoreError(error.message);
+                return;
             }
         };
 
