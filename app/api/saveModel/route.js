@@ -1,36 +1,47 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { join } from 'path';
 
 export async function POST(request) {
   try {
     const { modelName, modelData } = await request.json();
-
-    // Validate request
-    if (!modelName || !modelData) {
-      return NextResponse.json(
-        { error: 'Model name and data are required' },
-        { status: 400 }
-      );
+    
+    // Validate model structure
+    if (!modelData.tree || !modelData.labelEncoder) {
+      throw new Error('Invalid model structure');
     }
 
+    // Format the model data in the required structure
+    const formattedModel = {
+      model: {
+        tree: modelData.tree
+      },
+      labelEncoder: {
+        condition: modelData.labelEncoder
+      }
+    };
+
     // Create models directory if it doesn't exist
-    const modelsDir = path.join(process.cwd(), 'public', 'models');
+    const modelsDir = join(process.cwd(), 'public', 'models');
     await mkdir(modelsDir, { recursive: true });
 
-    // Save the file
-    const filePath = path.join(modelsDir, `${modelName}.json`);
-    await writeFile(filePath, JSON.stringify(modelData, null, 2));
+    // Generate timestamp for unique filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '');
+    const filename = `WM_${timestamp}.json`;
+    const filePath = join(modelsDir, filename);
 
-    return NextResponse.json({
-      success: true,
-      path: `/models/${modelName}.json`
+    // Write the formatted model to file
+    await writeFile(filePath, JSON.stringify(formattedModel, null, 2));
+
+    return NextResponse.json({ 
+      message: 'Model saved successfully',
+      path: `/models/${filename}`
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('Error saving model:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to save model' },
+      { message: 'Error saving model', error: error.message },
       { status: 500 }
     );
   }
