@@ -37,7 +37,10 @@ export function Providers({
           apiKey={apiKey || ""}
           chain={scrollSepolia}
         >
-          <RainbowKitProvider modalSize="compact">
+          <RainbowKitProvider 
+            modalSize="compact"
+            initialChain={scrollSepolia}
+          >
             {children}
           </RainbowKitProvider>
         </OnchainKitProvider>

@@ -59,6 +59,10 @@ export function WalletComponents() {
       </Wallet>
     </div>
   );
+<<<<<<< HEAD
 }
 
 export default WalletComponents;
+=======
+}
+>>>>>>> e402da91f46216815e26f320060aeac5fb18d936
