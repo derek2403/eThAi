@@ -31,7 +31,7 @@ export function getConfig() {
     ssr: true,
     transports: {
       [base.id]: http(),
-      [sepolia.id]: http(),
+      [sepolia.id]: http("https://scroll-sepolia.g.alchemy.com/v2/2iPF_MT9jp-O4mQ0eWd1HpeamV3zWWt4"),
     },
   });
 }
