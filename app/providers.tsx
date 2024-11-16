@@ -2,20 +2,15 @@
 
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { sepolia } from 'viem/chains'; // add baseSepolia for testing if needed
+import { scrollSepolia } from 'viem/chains'; // add baseSepolia for testing if needed
 import { ReactNode, useState } from 'react';
 import { State, WagmiProvider } from 'wagmi';
 import '@coinbase/onchainkit/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
 import {
   RainbowKitProvider,
-  connectorsForWallets
 } from '@rainbow-me/rainbowkit';
-import {
-  metaMaskWallet,
-  rainbowWallet,
-  coinbaseWallet
-} from '@rainbow-me/rainbowkit/wallets';
+
 
 import { getConfig } from '../wagmi'; // ensure the path is correct
 
@@ -40,7 +35,7 @@ export function Providers({
       <QueryClientProvider client={queryClient}>
         <OnchainKitProvider
           apiKey={apiKey || ""}
-          chain={sepolia}
+          chain={scrollSepolia}
         >
           <RainbowKitProvider modalSize="compact">
             {children}
