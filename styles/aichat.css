@@ -54,68 +54,57 @@
   }
   
   .messages-container {
-    height: 500px;
-    overflow-y: auto;
-    padding: 1.5rem;
-    background: #f8faff;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 16px;
+    padding: 20px;
+    overflow-y: auto;
   }
   
   .message-wrapper {
     display: flex;
-    max-width: 85%;
+    width: 100%;
   }
   
   .message-wrapper.sent {
-    margin-left: auto;
+    justify-content: flex-end;
   }
   
   .message-wrapper.received {
-    margin-right: auto;
+    justify-content: flex-start;
   }
   
   .message-bubble {
-    padding: 1rem 1.25rem;
-    border-radius: 16px;
-    position: relative;
-    transition: all 0.3s ease;
+    max-width: 70%;
+    padding: 10px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   
-  .message-bubble.sent {
-    background: linear-gradient(135deg, #0056FF 0%, #0045cc 100%);
+  .user-message {
+    background-color: #007AFF;
     color: white;
+    padding: 10px 15px;
+    border-radius: 12px;
+    align-self: flex-end;
     margin-left: auto;
-    border-bottom-right-radius: 4px;
   }
   
-  .message-bubble.received {
-    background: white;
-    color: #1e293b;
-    box-shadow: 0 2px 8px rgba(0, 86, 255, 0.05);
-    border-bottom-left-radius: 4px;
-  }
-  
-  .message-text {
-    line-height: 1.5;
-  }
-  
-  .message-response {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .message-bubble.received .message-response {
-    border-top-color: rgba(0, 86, 255, 0.1);
+  .ai-message {
+    background-color: #E9ECEF;
+    color: black;
+    padding: 10px 15px;
+    border-radius: 12px;
+    align-self: flex-start;
+    margin-left: -250px;
   }
   
   .pending-message {
     font-style: italic;
-    font-size: 0.875rem;
-    opacity: 0.8;
-    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.9em;
   }
   
   .input-container {
@@ -213,4 +202,15 @@
     .message-wrapper {
       max-width: 90%;
     }
+  }
+  
+  .contract-link {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  
+  .contract-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
   }

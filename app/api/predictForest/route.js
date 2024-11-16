@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 // Validation constants
-const VALID_INPUT_PATTERN = /Today is (\d+(?:\.\d+)?) degree celcuis with (\d+(?:\.\d+)?)% humidity in (\w+)/i;
+const VALID_INPUT_PATTERN = /Today is (\d+(?:\.\d+)?) degree celsius with (\d+(?:\.\d+)?)% humidity in (\w+)/i;
 
 const MONTH_MAP = {
   'jan': 1, 'january': 1,
