@@ -1,0 +1,87 @@
+/* styles/header.module.css */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 20px;
+    background-color: #ffffff;
+    color: #000000;
+    border-bottom: 1px solid #0000001a;
+    height: 80px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.navLinks {
+    display: flex;
+    align-items: center;
+    gap: 90px;
+    position: relative;
+}
+
+.navLinks a {
+    text-decoration: none;
+    color: #000000;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.navLinks a:hover {
+    color: #2972c6;
+}
+
+.dropdown {
+    position: relative;
+    cursor: pointer;
+}
+
+.dropdownLink {
+    color: #000000;
+    font-weight: 500;
+}
+
+.dropdownMenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.dropdownMenu a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 13px;
+}
+
+.dropdownMenu a:hover {
+    background-color: #f0f0f0;
+    color: #0070f3;
+}
+
+.joinButton button {
+    padding: 10px 30px;
+    background-color: #ffffff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 21px;
+    transition: background-color 0.3s;
+    
+}
+
+.joinButton button:hover {
+    background-color: #ffffff;
+    cursor: default;
+}

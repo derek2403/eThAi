@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { GENERATOR_ADDRESS, ABI } from '../../utils/constants';
 import { useRouter } from 'next/navigation';
+import styles from '../../styles/split.css';
+import { Header } from '../../components/Header';
 
 export default function Split() {
   const [isLoading, setIsLoading] = useState(false);
@@ -221,64 +223,75 @@ export default function Split() {
   if (!mounted) {
     return null;
   }
+  
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Dataset Splitter</h1>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Upload Dataset (JSON)
-              </label>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="mt-1 block w-full"
-              />
+    <div className="container">
+      <Header/>
+      <div className="card">
+        <h1 className="title fade-in">Welcome to eThAi</h1>
+        <p className="subtitle fade-in">
+          Transform your data into personalized AI models with guaranteed integrity and security
+        </p>
+        
+        <div className="step-container fade-in">
+          <div className="step-number">1</div>
+          <h2 className="step-title">Upload your dataset</h2>
+          <div className="file-upload">
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+            />
+            <div className="file-upload-label">
+              Drop your JSON file here or click to browse
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Number of Splits
-              </label>
-              <input
-                type="number"
-                value={numGroups}
-                onChange={(e) => setNumGroups(Math.max(2, parseInt(e.target.value)))}
-                min="2"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
-            </div>
-
-            <button
-              onClick={requestSequence}
-              disabled={isLoading || !dataset || !provider}
-              className={`w-full py-2 px-4 rounded-md ${
-                isLoading || !dataset || !provider
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isLoading ? 'Processing...' : 'Split Dataset'}
-            </button>
-
-            {transactionStatus && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-md">
-                <p className="text-sm text-blue-700">{transactionStatus}</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 rounded-md">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
           </div>
         </div>
+  
+        <div className="step-container fade-in">
+          <div className="step-number">2</div>
+          <h2 className="step-title">Select number of dataset partitions</h2>
+          <div className="number-input-container">
+            <div 
+              className="number-control"
+              onClick={() => setNumGroups(prev => Math.max(2, prev - 1))}
+            >
+              −
+            </div>
+            <div className="number-display">{numGroups}</div>
+            <div 
+              className="number-control"
+              onClick={() => setNumGroups(prev => prev + 1)}
+            >
+              +
+            </div>
+          </div>
+        </div>
+  
+        <button
+          onClick={requestSequence}
+          disabled={isLoading || !dataset || !provider}
+          className={`train-button ${
+            isLoading || !dataset || !provider
+              ? 'train-button-disabled'
+              : 'train-button-enabled'
+          }`}
+        >
+          {isLoading ? 'Processing...' : 'Train Model'}
+        </button>
+  
+        {transactionStatus && (
+          <div className="status-message success fade-in">
+            {transactionStatus}
+          </div>
+        )}
+  
+        {error && (
+          <div className="status-message error fade-in">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

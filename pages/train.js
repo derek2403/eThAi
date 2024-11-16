@@ -1,11 +1,14 @@
+"use client";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { ethers } from 'ethers';
+import { Card, CardBody, CardHeader, Progress } from "@nextui-org/react";
 import { storeModelOnChain } from '../utils/contractInteraction';
 import { DecisionTree } from '@/model/DecisionTree';
 import pako from 'pako';
 import { saveModelLocally } from '../utils/modelStorage';
-
+import styles from '../styles/train.css';
 const AMOY_CHAIN_ID = "0x13882"; // 1256247 in decimal
 
 // Add this function before storeModelOnChain
@@ -177,56 +180,95 @@ export default function Train() {
   }, []); // Remove trainerAddress from dependencies
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
-          <h2 className="text-2xl font-bold mb-4">Model Training</h2>
-          
-          {isTraining ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Training in progress...</p>
+    <div className="training-container">
+      {isTraining ? (
+        <div className="loading-screen">
+          <div className="cube-grid">
+            {[...Array(9)].map((_, i) => (
+              <div key={i} className="cube"></div>
+            ))}
+          </div>
+          <div className="loading-text">
+            <h2>Training in Progress</h2>
+            <div className="progress-bar">
+              <Progress
+                size="sm"
+                isIndeterminate
+                aria-label="Loading..."
+                className="max-w-md"
+                color="primary"
+              />
             </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-lg p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Trainer Address</p>
-                    <p className="font-mono">{trainerAddress}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Dataset Name</p>
-                    <p>{selectedSplit?.datasets[0].name}</p>
-                  </div>
+            <p>Please wait while we train your model</p>
+          </div>
+        </div>
+      ) : (
+        <div className="results-display">
+          <Card className="results-card">
+            <CardHeader className="results-header">
+              <h2>Training Results</h2>
+            </CardHeader>
+            <CardBody>
+              <div className="info-section">
+                <div className="info-row">
+                  <div className="info-label">Trainer Address</div>
+                  <div className="info-value monospace">{trainerAddress}</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Dataset Name</div>
+                  <div className="info-value">{selectedSplit?.datasets[0].name}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-6">
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-sm text-gray-500 mb-2">RMSE</h3>
-                  <p className="text-2xl font-semibold">{trainingResults?.rmse.toFixed(4)}</p>
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 20V10" />
+                      <path d="M18 20V4" />
+                      <path d="M6 20v-4" />
+                    </svg>
+                  </div>
+                  <div className="metric-value">{trainingResults?.rmse.toFixed(4)}</div>
+                  <div className="metric-label">RMSE</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-sm text-gray-500 mb-2">MSE</h3>
-                  <p className="text-2xl font-semibold">{trainingResults?.mse.toFixed(4)}</p>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 21H3" />
+                      <path d="M21 3v18" />
+                      <path d="M3 21V3" />
+                    </svg>
+                  </div>
+                  <div className="metric-value">{trainingResults?.mse.toFixed(4)}</div>
+                  <div className="metric-label">MSE</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-sm text-gray-500 mb-2">R² Score</h3>
-                  <p className="text-2xl font-semibold">{trainingResults?.rSquared.toFixed(4)}</p>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16V8" />
+                      <path d="M12 8l4 4" />
+                      <path d="M12 8l-4 4" />
+                    </svg>
+                  </div>
+                  <div className="metric-value">{trainingResults?.rSquared.toFixed(4)}</div>
+                  <div className="metric-label">R² Score</div>
                 </div>
               </div>
 
               {storeError && (
-                <div className="bg-red-50 rounded-lg p-6">
-                  <h3 className="text-sm text-red-500 mb-2">Error</h3>
-                  <p className="text-sm">{storeError}</p>
+                <div className="error-message">
+                  <div className="error-icon">⚠️</div>
+                  <p>{storeError}</p>
                 </div>
               )}
-            </div>
-          )}
+            </CardBody>
+          </Card>
         </div>
-      </div>
+      )}
     </div>
   );
 }
