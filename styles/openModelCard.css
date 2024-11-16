@@ -13,6 +13,10 @@
     padding: 1rem;
   }
   
+    .info-row:first-child{
+        padding-top: 0;
+    }
+
   .section-title {
     font-size: 2.5rem;
     color: #0056FF;
@@ -49,7 +53,7 @@
   }
   
   .card-header {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     position: relative;
     z-index: 1;
   }

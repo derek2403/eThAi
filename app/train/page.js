@@ -1,187 +1,276 @@
-"use client"
+"use client";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ethers } from 'ethers';
+import { Card, CardBody, CardHeader, Progress } from "@nextui-org/react";
 import { storeModelOnChain } from '../../utils/contractInteraction';
 import { DecisionTree } from '@/model/DecisionTree';
 import pako from 'pako';
 import { saveModelLocally } from '../../utils/modelStorage';
-import { WalletComponents } from '../../components/Wallet';
+import styles from '../../styles/train.css';
+import { Header } from '../../components/Header';
+const AMOY_CHAIN_ID = "0x13882"; // 1256247 in decimal
 
-const AMOY_CHAIN_ID = "0x13882"; // Polygon Amoy testnet
-
+// Add this function before storeModelOnChain
 const compressModelData = async (model) => {
-    try {
-        const modelString = typeof model === 'string' ? model : JSON.stringify(model);
-        const modelData = new TextEncoder().encode(modelString);
-        const compressedData = pako.deflate(modelData);
-        const hexString = '0x' + Array.from(compressedData)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-        return hexString;
-    } catch (error) {
-        console.error('Error compressing model data:', error);
-        throw error;
-    }
+  try {
+    // Convert model to string if it's not already
+    const modelString = typeof model === 'string' ? model : JSON.stringify(model);
+    
+    // Convert string to Uint8Array
+    const modelData = new TextEncoder().encode(modelString);
+    
+    // Compress the data
+    const compressedData = pako.deflate(modelData);
+    
+    // Convert to hex string for blockchain storage
+    const hexString = '0x' + Array.from(compressedData)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    return hexString;
+  } catch (error) {
+    console.error('Error compressing model data:', error);
+    throw error;
+  }
 };
 
 export default function Train() {
-    const [isTraining, setIsTraining] = useState(true);
-    const [trainingResults, setTrainingResults] = useState(null);
-    const [selectedSplit, setSelectedSplit] = useState(null);
-    const [trainerAddress, setTrainerAddress] = useState('');
-    const [storeError, setStoreError] = useState(null);
-    const router = useRouter();
+  const [isTraining, setIsTraining] = useState(true);
+  const [trainingResults, setTrainingResults] = useState(null);
+  const [selectedSplit, setSelectedSplit] = useState(null);
+  const [trainerAddress, setTrainerAddress] = useState('');
+  const [storeError, setStoreError] = useState(null);
+  const router = useRouter();
 
-    useEffect(() => {
-        const initializeTraining = async () => {
-            try {
-                // Get selected split
+  useEffect(() => {
+    const initializeTraining = async () => {
+      try {
+        // Get selected split and wallet address
+        const splitIndex = localStorage.getItem('selectedSplitIndex');
+        const splits = JSON.parse(localStorage.getItem('splitDatasets'));
+        const split = splits[splitIndex];
+        setSelectedSplit(split);
+
+        // Get wallet address
+        if (window.ethereum) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const address = await signer.getAddress();
+          setTrainerAddress(address);
+        }
+
+        // Get training data and train model
+        const trainingData = split.datasets[0].data;
+        console.log('Training data sample:', trainingData[0]);
+
+        const model = new DecisionTree(trainingData);
+        
+        // Use a ref to track if the effect has run
+        let isSubscribed = true;
+
+        setTimeout(async () => {
+          try {
+            if (!isSubscribed) return;
+
+            // Check if split is already trained
+            const splitIndex = localStorage.getItem('selectedSplitIndex');
+            const splits = JSON.parse(localStorage.getItem('splitDatasets'));
+            if (splits[splitIndex].trainedBy) {
+              console.log('Split already trained by:', splits[splitIndex].trainedBy);
+              setStoreError('This split has already been trained');
+              return;
+            }
+
+            const results = model.train();
+            console.log('Training results:', results);
+            setTrainingResults(results);
+            setIsTraining(false);
+
+            if (window.ethereum) {
+              // Check network
+              const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+              console.log('Current chainId:', chainId);
+              
+              if (chainId !== '0x13882') { // Mumbai testnet
+                setStoreError('Please connect to Mumbai testnet');
+                return;
+              }
+
+              // Check balance
+              const provider = new ethers.BrowserProvider(window.ethereum);
+              const signer = await provider.getSigner();
+              const address = await signer.getAddress();
+              const balance = await provider.getBalance(address);
+              
+              // Convert balance to number and check if it's zero
+              const balanceInEther = Number(ethers.formatEther(balance));
+              console.log('Wallet balance:', balanceInEther, 'MATIC');
+              
+              if (balanceInEther <= 0) {
+                setStoreError('Insufficient funds. Please add MATIC to your wallet.');
+                return;
+              }
+
+              const timestamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
+              const modelName = `WM_${timestamp}`;
+              const datasetName = "Weather_2023";
+              
+              try {
+                // Save model locally first
+                const modelPath = await saveModelLocally(modelName, model);
+                console.log('Model saved locally at:', modelPath);
+
+                // Then proceed with blockchain storage
+                const txHash = await storeModelOnChain(modelName, datasetName, {
+                  mse: results.mse || 0.000001,
+                  rmse: results.rmse || 0.000001,
+                  rSquared: results.rSquared || 0.000001
+                });
+
+                console.log('Model stored on chain:', txHash);
+
+                // Update localStorage
                 const splitIndex = localStorage.getItem('selectedSplitIndex');
                 const splits = JSON.parse(localStorage.getItem('splitDatasets'));
-                const split = splits[splitIndex];
+                splits[splitIndex] = {
+                  ...splits[splitIndex],
+                  trainedBy: address,
+                  metrics: results,
+                  modelName,
+                  txHash
+                };
+                localStorage.setItem('splitDatasets', JSON.stringify(splits));
 
-                if (!split || !split.datasets || !split.datasets[0]?.data) {
-                    throw new Error('Invalid split data');
-                }
+                // Redirect to results
+                router.push('/results');
 
-                setSelectedSplit(split);
-
-                // Train model
-                const model = new DecisionTree(split.datasets[0].data);
-                const results = model.train();
-
-                if (!results || typeof results.mse !== 'number') {
-                    throw new Error('Invalid training results');
-                }
-
-                setTrainingResults(results);
-                setIsTraining(false);
-
-                if (window.ethereum) {
-                    // Network check and storage logic
-                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                    if (chainId !== AMOY_CHAIN_ID) {
-                        setStoreError('Please connect to Polygon Amoy testnet');
-                        return;
-                    }
-
-                    const provider = new ethers.BrowserProvider(window.ethereum);
-                    const signer = await provider.getSigner();
-                    const address = await signer.getAddress();
-                    setTrainerAddress(address);
-
-                    const balance = await provider.getBalance(address);
-                    const balanceInEther = Number(ethers.formatEther(balance));
-                    
-                    if (balanceInEther <= 0) {
-                        setStoreError('Insufficient funds. Please add MATIC to your wallet.');
-                        return;
-                    }
-
-                    const timestamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
-                    const modelName = `WM_${timestamp}`;
-                    const datasetName = split.datasets[0].name || "Weather_2023";
-                    
-                    try {
-                        // Compress and save model
-                        const compressedModel = await compressModelData(model);
-                        const modelPath = await saveModelLocally(modelName, compressedModel);
-                        console.log('Model saved locally at:', modelPath);
-
-                        // Store on blockchain
-                        const txHash = await storeModelOnChain(modelName, datasetName, {
-                            mse: results.mse || 0.000001,
-                            rmse: results.rmse || 0.001,
-                            rSquared: results.rSquared || 0.5
-                        });
-
-                        console.log('Model stored on chain:', txHash);
-
-                        // Update localStorage
-                        splits[splitIndex] = {
-                            ...split,
-                            trainedBy: address,
-                            metrics: {
-                                mse: results.mse,
-                                rmse: results.rmse,
-                                rSquared: results.rSquared
-                            },
-                            modelName,
-                            txHash
-                        };
-                        localStorage.setItem('splitDatasets', JSON.stringify(splits));
-
-                        router.push('/results');
-
-                    } catch (txError) {
-                        console.error('Transaction error:', txError);
-                        setStoreError(txError.message);
-                    }
-                }
-
-            } catch (error) {
-                console.error('Training error:', error);
-                setIsTraining(false);
-                setStoreError(error.message);
+              } catch (txError) {
+                console.error('Transaction error:', txError);
+                setStoreError(txError.message);
+              }
             }
+
+          } catch (error) {
+            console.error('Training error:', error);
+            setIsTraining(false);
+            setStoreError(error.message);
+          }
+        }, 5000);
+
+        // Cleanup function
+        return () => {
+          isSubscribed = false;
         };
 
-        initializeTraining();
-    }, []);
+      } catch (error) {
+        console.error('Error initializing training:', error);
+        setIsTraining(false);
+      }
+    };
 
-    return (
-        <div className="min-h-screen bg-gray-100 py-6">
-            <WalletComponents />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
-                    <h2 className="text-2xl font-bold mb-4">Model Training</h2>
+    // Only run once when component mounts
+    let mounted = true;
+    if (mounted) {
+      initializeTraining();
+    }
+    return () => {
+      mounted = false;
+    };
+  }, []); // Remove trainerAddress from dependencies
 
-                    {isTraining ? (
-                        <div className="text-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                            <p className="mt-4 text-gray-600">Training in progress...</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 rounded-lg p-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Trainer Address</p>
-                                        <p className="font-mono">{trainerAddress}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500">Dataset Name</p>
-                                        <p>{selectedSplit?.datasets[0].name}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-6">
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="text-sm text-gray-500 mb-2">RMSE</h3>
-                                    <p className="text-2xl font-semibold">{trainingResults?.rmse.toFixed(4)}</p>
-                                </div>
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="text-sm text-gray-500 mb-2">MSE</h3>
-                                    <p className="text-2xl font-semibold">{trainingResults?.mse.toFixed(4)}</p>
-                                </div>
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="text-sm text-gray-500 mb-2">R² Score</h3>
-                                    <p className="text-2xl font-semibold">{trainingResults?.rSquared.toFixed(4)}</p>
-                                </div>
-                            </div>
-
-                            {storeError && (
-                                <div className="bg-red-50 rounded-lg p-6">
-                                    <h3 className="text-sm text-red-500 mb-2">Error</h3>
-                                    <p className="text-sm">{storeError}</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+  return (
+    <div className="training-container">
+      <Header />
+      {isTraining ? (
+        <div className="loading-screen">
+          <div className="cube-grid">
+            {[...Array(9)].map((_, i) => (
+              <div key={i} className="cube"></div>
+            ))}
+          </div>
+          <div className="loading-text">
+            <h2>Training in Progress</h2>
+            <div className="progress-bar">
+              <Progress
+                size="sm"
+                isIndeterminate
+                aria-label="Loading..."
+                className="max-w-md"
+                color="primary"
+              />
             </div>
+            <p>Please wait while we train your model</p>
+          </div>
         </div>
-    );
+      ) : (
+        <div className="results-display">
+          <Card className="results-card">
+            <CardHeader className="results-header">
+              <h2>Training Results</h2>
+            </CardHeader>
+            <CardBody>
+              <div className="info-section">
+                <div className="info-row">
+                  <div className="info-label">Trainer Address</div>
+                  <div className="info-value monospace">{trainerAddress}</div>
+                </div>
+                <div className="info-row">
+                  <div className="info-label">Dataset Name</div>
+                  <div className="info-value">{selectedSplit?.datasets[0].name}</div>
+                </div>
+              </div>
+
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 20V10" />
+                      <path d="M18 20V4" />
+                      <path d="M6 20v-4" />
+                    </svg>
+                  </div>
+                  <div className="metric-value">{trainingResults?.rmse.toFixed(4)}</div>
+                  <div className="metric-label">RMSE</div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 21H3" />
+                      <path d="M21 3v18" />
+                      <path d="M3 21V3" />
+                    </svg>
+                  </div>
+                  <div className="metric-value">{trainingResults?.mse.toFixed(4)}</div>
+                  <div className="metric-label">MSE</div>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16V8" />
+                      <path d="M12 8l4 4" />
+                      <path d="M12 8l-4 4" />
+                    </svg>
+                  </div>
+                  <div className="metric-value">{trainingResults?.rSquared.toFixed(4)}</div>
+                  <div className="metric-label">R² Score</div>
+                </div>
+              </div>
+
+              {storeError && (
+                <div className="error-message">
+                  <div className="error-icon">⚠️</div>
+                  <p>{storeError}</p>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
 }

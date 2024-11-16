@@ -7,7 +7,7 @@
     background-color: #ffffff;
     color: #000000;
     border-bottom: 1px solid #0000001a;
-    height: 80px;
+    height: 66px;
 }
 
 .logo {
@@ -18,7 +18,7 @@
 .navLinks {
     display: flex;
     align-items: center;
-    gap: 90px;
+    gap: 60px;
     position: relative;
 }
 
@@ -70,7 +70,7 @@
 }
 
 .joinButton button {
-    padding: 10px 30px;
+    padding: 10px 10px;
     background-color: #ffffff;
     color: #fff;
     border: none;

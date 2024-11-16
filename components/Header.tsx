@@ -29,11 +29,11 @@ export function Header() {
                     onMouseEnter={toggleDropdown}
                     onMouseLeave={toggleDropdown}
                 >
-                    <span className={styles.dropdownLink}>Provide Compute &ensp; ᐯ</span>
+                    <span className={styles.dropdownLink}>Provide Compute  <span className='opacity-30'>V</span> </span>
                     {dropdownOpen && (
                         <div className={styles.dropdownMenu}>
-                            <Link href="/closed-source">Closed-source Model</Link>
-                            <Link href="/open-source">Open-source Model</Link>
+                            <Link href="/closeModelCard">Closed-source Model</Link>
+                            <Link href="/openModelCard">Open-source Model</Link>
                         </div>
                     )}
                 </div>

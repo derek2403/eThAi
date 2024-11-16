@@ -82,8 +82,9 @@
   
 
   .landingLeftBottomButton2:hover {
-    background-color: #e9e9e9 !important;
-    color: #000000ec !important;
+    background-color: #dedcff !important;
+    color: #6b6c6cec !important;
+    border: 3px solid #449dfc !important;
   }
   
   .landingRight {
@@ -91,4 +92,5 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100%;
   }
