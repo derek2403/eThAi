@@ -1,27 +1,27 @@
-import { ErrorBoundary } from 'react-error-boundary';
-import '../styles/globals.css';
+import { WagmiProvider, createConfig } from 'wagmi';
+import { mainnet, polygonAmoy } from 'wagmi/chains';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { http } from 'viem';
 
-function ErrorFallback({ error }) {
+// Create wagmi config
+const config = createConfig({
+  chains: [polygonAmoy],
+  transports: {
+    [polygonAmoy.id]: http('https://rpc-amoy.polygon.technology'),
+  },
+});
+
+// Create a client for React Query
+const queryClient = new QueryClient();
+
+function MyApp({ Component, pageProps }) {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-lg w-full">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-        <pre className="text-sm text-gray-500 overflow-auto">
-          {error.message}
-        </pre>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Try again
-        </button>
-      </div>
-    </div>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <Component {...pageProps} />
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 
-function MyApp({ Component, pageProps }) {
-  return <Component {...pageProps} />
-}
-
-export default MyApp 
+export default MyApp; 

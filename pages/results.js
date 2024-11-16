@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-
+import { WalletComponents } from '../components/Wallet';
 export default function Results() {
   const [splits, setSplits] = useState([]);
   const [selectedSplit, setSelectedSplit] = useState(null);
@@ -118,7 +118,9 @@ export default function Results() {
                   >
                     Train
                   </button>
+                  
                 )}
+                < WalletComponents />
               </div>
             </div>
           </div>

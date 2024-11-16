@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { GENERATOR_ADDRESS, ABI } from '../utils/constants';
-import { useRouter } from 'next/router';
+import { GENERATOR_ADDRESS, ABI } from '../../utils/constants';
+import { useRouter } from 'next/navigation';
 
 export default function Split() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,15 +14,22 @@ export default function Split() {
   const [size, setSize] = useState(50);
   const [transactionStatus, setTransactionStatus] = useState('');
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [provider, setProvider] = useState(null);
 
-  const getProvider = () => {
-    return new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
-  };
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
+      setProvider(provider);
+    }
+  }, []);
 
   useEffect(() => {
     async function getFee() {
+      if (!provider) return;
+      
       try {
-        const provider = getProvider();
         const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
         const requestFee = await contract.getFee();
         setFee(requestFee);
@@ -31,10 +38,13 @@ export default function Split() {
         setError('Failed to get fee');
       }
     }
-    getFee();
-  }, []);
+    
+    if (provider) {
+      getFee();
+    }
+  }, [provider]);
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = useCallback((event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -43,7 +53,6 @@ export default function Split() {
           const parsedDataset = JSON.parse(e.target.result);
           setDataset(parsedDataset);
           setSize(parsedDataset.datasets[0].data.length);
-          console.log('Dataset loaded:', parsedDataset);
           setTransactionStatus('Dataset loaded successfully');
         } catch (err) {
           setError('Error parsing JSON file');
@@ -52,15 +61,12 @@ export default function Split() {
       };
       reader.readAsText(file);
     }
-  };
+  }, []);
 
   const watchForResults = useCallback(async (sequence, txHash) => {
-    try {
-      if (!dataset) {
-        throw new Error('Please upload a dataset first');
-      }
+    if (!provider || !dataset) return;
 
-      const provider = getProvider();
+    try {
       const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
 
       setTransactionStatus('Waiting for transaction confirmation...');
@@ -121,19 +127,16 @@ export default function Split() {
       setError('Error: ' + err.message);
       setTransactionStatus('Failed to generate sequence');
     }
-  }, [dataset]);
+  }, [dataset, provider]);
 
   const requestSequence = async () => {
-    try {
-      if (!dataset) {
-        throw new Error('Please upload a dataset first');
-      }
+    if (!provider || !dataset) return;
 
+    try {
       setIsLoading(true);
       setError(null);
       setSplitDatasets(null);
 
-      const provider = getProvider();
       const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY;
       const wallet = new ethers.Wallet(privateKey, provider);
       const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, wallet);
@@ -215,6 +218,10 @@ export default function Split() {
     return splits;
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -249,8 +256,12 @@ export default function Split() {
 
             <button
               onClick={requestSequence}
-              disabled={isLoading || !dataset}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+              disabled={isLoading || !dataset || !provider}
+              className={`w-full py-2 px-4 rounded-md ${
+                isLoading || !dataset || !provider
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
               {isLoading ? 'Processing...' : 'Split Dataset'}
             </button>

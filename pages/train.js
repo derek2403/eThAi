@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { ethers } from 'ethers';
 import { storeModelOnChain } from '../utils/contractInteraction';
-import LZString from 'lz-string';
 import { DecisionTree } from '@/model/DecisionTree';
 import pako from 'pako';
 import { saveModelLocally } from '../utils/modelStorage';
