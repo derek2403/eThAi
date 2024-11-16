@@ -60,7 +60,19 @@ const Background: React.FC = () => {
     };
   }, []);
 
-  return <div ref={currentMount} style={{ position: 'absolute', width: '100%', height: '100%' }} />;
+  return (
+    <div ref={currentMount} style={{ position: 'absolute', width: '100%', height: '100%' }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(173, 216, 230, 0.2)', // Light blue overlay
+        pointerEvents: 'none',
+      }} />
+    </div>
+  );
 };
 
 export default Background;
