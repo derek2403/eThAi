@@ -1,9 +1,8 @@
-
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import styles from '../styles/header.module.css';
+import { WalletComponents } from './Wallet';
 
 export function Header() {
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -38,6 +37,7 @@ export function Header() {
                     )}
                 </div>
             </div>
+                <WalletComponents />
             <div className={styles.joinButton}>
                 <button>Join Us</button>
             </div>
