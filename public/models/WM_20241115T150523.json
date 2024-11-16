@@ -1,0 +1,83 @@
+{
+  "modelType": "DecisionTree",
+  "version": "1.0",
+  "features": [
+    "temperature",
+    "humidity",
+    "month"
+  ],
+  "featureRanges": {
+    "temperature": {
+      "min": 8.3,
+      "max": 22.5
+    },
+    "humidity": {
+      "min": 40,
+      "max": 86
+    },
+    "month": {
+      "min": 1,
+      "max": 4
+    }
+  },
+  "labelEncoder": {
+    "condition": {
+      "rainy": 0,
+      "sunny": 1
+    }
+  },
+  "hyperparameters": {},
+  "metrics": {
+    "mse": 0,
+    "rmse": 0,
+    "rSquared": 1
+  },
+  "metadata": {
+    "samples": 4,
+    "createdAt": "2024-11-15T15:05:23.488Z"
+  },
+  "model": {
+    "maxDepth": 5,
+    "minSamplesSplit": 2,
+    "minMseReduction": 0.0001,
+    "featureNames": [
+      "temperature",
+      "humidity",
+      "month"
+    ],
+    "tree": {
+      "feature": "humidity",
+      "threshold": 66,
+      "value": null,
+      "samples": 4,
+      "mse": 0.25,
+      "left": {
+        "feature": null,
+        "threshold": null,
+        "value": 1,
+        "samples": 2,
+        "mse": 0,
+        "left": null,
+        "right": null
+      },
+      "right": {
+        "feature": null,
+        "threshold": null,
+        "value": 0,
+        "samples": 2,
+        "mse": 0,
+        "left": null,
+        "right": null
+      }
+    }
+  },
+  "samplePrediction": {
+    "input": {
+      "temperature": 20,
+      "humidity": 50,
+      "month": 6,
+      "condition": "sunny"
+    },
+    "output": "sunny"
+  }
+}
