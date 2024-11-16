@@ -4,36 +4,48 @@ import { join } from 'path';
 
 export async function POST(request) {
   try {
-    const { modelName, modelData } = await request.json();
+    const body = await request.json();
+    console.log('Received body:', body);
     
-    // Validate model structure
-    if (!modelData.tree || !modelData.labelEncoder) {
-      throw new Error('Invalid model structure');
+    if (!body.modelName) {
+      return NextResponse.json(
+        { message: 'Missing model name' },
+        { status: 400 }
+      );
     }
 
-    // Format the model data in the required structure
-    const formattedModel = {
-      model: {
-        tree: modelData.tree
-      },
-      labelEncoder: {
-        condition: modelData.labelEncoder
-      }
+    // Log the model data
+    console.log('Model data to save:', body.modelData);
+
+    const modelData = {
+      tree: body.modelData?.tree || {},
+      labelEncoder: body.modelData?.labelEncoder || {}
     };
+
+    // Log the formatted data
+    console.log('Formatted model data:', modelData);
+
+    const formattedModel = {
+      model: { tree: modelData.tree },
+      labelEncoder: modelData.labelEncoder
+    };
+
+    // Log the final structure
+    console.log('Final model structure:', formattedModel);
 
     // Create models directory if it doesn't exist
     const modelsDir = join(process.cwd(), 'public', 'models');
     await mkdir(modelsDir, { recursive: true });
 
-    // Generate timestamp for unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '');
-    const filename = `WM_${timestamp}.json`;
+    // Generate filename
+    const filename = `${body.modelName}.json`;
     const filePath = join(modelsDir, filename);
 
-    // Write the formatted model to file
+    // Write the model to file
     await writeFile(filePath, JSON.stringify(formattedModel, null, 2));
 
     return NextResponse.json({ 
+      success: true,
       message: 'Model saved successfully',
       path: `/models/${filename}`
     });
