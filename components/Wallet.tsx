@@ -11,6 +11,7 @@ import {
   Avatar,
   Name,
   Identity,
+  EthBalance
 } from '@coinbase/onchainkit/identity';
 //import { EthBalance } from '@coinbase/onchainkit/balance';
 import { WalletDropdownLink } from '@coinbase/onchainkit/wallet';
@@ -28,7 +29,7 @@ export function WalletComponents() {
             <Avatar />
             <Name />
             <Address />
-
+            <EthBalance />
           </Identity>
           <WalletDropdownLink
             icon="wallet"
