@@ -1,6 +1,8 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
-import contractConfig from '../utils/modelabi.json';
+import contractConfig from '../../utils/modelabi.json';
 import { useAccount } from 'wagmi';
 
 export default function AIChat() {
@@ -12,19 +14,23 @@ export default function AIChat() {
   const [forestModel, setForestModel] = useState(null);
   const { address } = useAccount();
 
-  // Initialize model, contract, and wallet
   useEffect(() => {
-    const init = async () => {
-      // Load model from localStorage
-      const aggregatedModel = localStorage.getItem('aggregatedModel');
-      if (aggregatedModel) {
-        const model = JSON.parse(aggregatedModel);
-        setForestModel(model);
-      }
+    const aggregatedModel = localStorage.getItem('aggregatedModel');
+    if (aggregatedModel) {
+      const model = JSON.parse(aggregatedModel);
+      setForestModel(model);
+    }
 
-      // Initialize contract and AI signer
-      const initContract = async () => {
-        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const initContract = async () => {
+      try {
+        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL, {
+          chainId: 80001,
+          name: 'Mumbai',
+          polling: true,
+          pollingInterval: 4000,
+          timeout: 10000
+        });
+        
         const aiWallet = new ethers.Wallet(process.env.NEXT_PUBLIC_AI_PRIVATE_KEY, provider);
         setAiSigner(aiWallet);
 
@@ -35,7 +41,6 @@ export default function AIChat() {
         );
         setContract(contractInstance);
 
-        // Listen for new responses
         contractInstance.on("ResponseReceived", (conversationId, response) => {
           setMessages(prev => prev.map(msg => 
             msg.conversationId === conversationId 
@@ -43,12 +48,12 @@ export default function AIChat() {
               : msg
           ));
         });
-      };
-
-      initContract();
+      } catch (error) {
+        console.error('Contract initialization error:', error);
+      }
     };
 
-    init();
+    initContract();
 
     return () => {
       if (contract) {
@@ -57,41 +62,30 @@ export default function AIChat() {
     };
   }, []);
 
-  // Process prediction using the model
   const processModelPrediction = async (query) => {
     if (!forestModel) throw new Error('Model not loaded');
 
-    try {
-      const response = await fetch('/api/predict-forest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          naturalLanguageInput: query,
-          // Also pass the forestModel if needed
-          model: forestModel
-        })
-      });
+    const response = await fetch('/api/predictForest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        naturalLanguageInput: query
+      })
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Prediction failed');
-      }
-
-      const result = await response.json();
-      
-      // Format the response for the chat
-      return `Based on the weather parameters (Temperature: ${result.parameters.temperature}°C, Humidity: ${result.parameters.humidity}%, Month: ${result.parameters.month}), 
-      I predict the weather will be: ${result.prediction} 
-      (Confidence: ${result.confidence}%)`;
-    } catch (error) {
-      console.error('Prediction error details:', error);
-      throw new Error(`Prediction failed: ${error.message}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Prediction failed');
     }
+
+    const result = await response.json();
+    return `Based on the weather parameters (Temperature: ${result.parameters.temperature}°C, Humidity: ${result.parameters.humidity}%, Month: ${result.parameters.month}), 
+    I predict the weather will be: ${result.prediction} 
+    (Confidence: ${result.confidence}%)`;
   };
 
-  // Submit query to blockchain
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !contract || !address || !forestModel) return;
@@ -101,11 +95,9 @@ export default function AIChat() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      // User submits query
       const tx = await contract.connect(signer).submitQuery(newMessage);
       const receipt = await tx.wait();
 
-      // Find the QuerySubmitted event
       const queryEvent = receipt.logs.find(log => {
         try {
           const parsedLog = contract.interface.parseLog(log);
@@ -122,7 +114,6 @@ export default function AIChat() {
       const parsedEvent = contract.interface.parseLog(queryEvent);
       const conversationId = parsedEvent.args.conversationId;
 
-      // Add message to UI
       setMessages(prev => [...prev, {
         id: Date.now(),
         conversationId,
@@ -131,10 +122,7 @@ export default function AIChat() {
         isPending: true
       }]);
 
-      // Process with actual model and submit response
       const prediction = await processModelPrediction(newMessage);
-      console.log('Prediction result:', prediction); // Debug log
-
       const responseTx = await contract.connect(aiSigner).submitResponse(conversationId, prediction);
       await responseTx.wait();
 
@@ -150,7 +138,6 @@ export default function AIChat() {
   return (
     <div className="container mx-auto p-4 max-w-2xl">
       <div className="bg-white rounded-lg shadow-lg">
-        {/* Chat Header */}
         <div className="border-b p-4">
           <h1 className="text-xl font-bold">AI Weather Assistant</h1>
           {address && (
@@ -160,7 +147,6 @@ export default function AIChat() {
           )}
         </div>
 
-        {/* Chat Messages */}
         <div className="h-[500px] overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div
@@ -186,7 +172,6 @@ export default function AIChat() {
           ))}
         </div>
 
-        {/* Input Form */}
         <form onSubmit={handleSubmit} className="border-t p-4">
           <div className="flex gap-2">
             <input

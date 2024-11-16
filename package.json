@@ -10,14 +10,23 @@
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.35.5",
+<<<<<<< HEAD
     "@nextui-org/react": "^2.4.8",
     "@react-three/drei": "^9.116.3",
     "@react-three/fiber": "^8.17.10",
+=======
+    "@pushprotocol/restapi": "^1.7.29",
+    "@rainbow-me/rainbowkit": "^2.2.0",
+>>>>>>> 40511e5b29e2db0a9f31cc7bfb4b2df318a52748
     "@tanstack/react-query": "^5.60.5",
     "@types/three": "^0.170.0",
     "ethers": "^6.13.4",
+<<<<<<< HEAD
     "framer-motion": "^11.11.17",
     "lz-string": "^1.5.0",
+=======
+    "fs": "^0.0.1-security",
+>>>>>>> 40511e5b29e2db0a9f31cc7bfb4b2df318a52748
     "next": "15.0.3",
     "openai": "^4.72.0",
     "pako": "^2.1.0",

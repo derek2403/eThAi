@@ -1,0 +1,55 @@
+{
+  "datasets": [
+    {
+      "id": "1",
+      "name": "Housing Price Dataset",
+      "description": "Boston housing price prediction dataset",
+      "features": [
+        "rooms",
+        "age",
+        "distance",
+        "tax"
+      ],
+      "target": "price",
+      "rows": 506,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "data": [
+        [
+          6,
+          50,
+          4.5,
+          296,
+          250000
+        ],
+        [
+          7,
+          35,
+          3.2,
+          252,
+          300000
+        ],
+        [
+          4,
+          51,
+          1.4,
+          429,
+          717329
+        ],
+        [
+          4,
+          14,
+          4.3,
+          282,
+          576730
+        ],
+        [
+          2,
+          25,
+          4.1,
+          299,
+          731139
+        ]
+      ]
+    }
+  ]
+}

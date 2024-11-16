@@ -2,9 +2,15 @@
 
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { base } from 'wagmi/chains'; // add baseSepolia for testing if needed
+import { scrollSepolia } from 'viem/chains'; // add baseSepolia for testing if needed
 import { ReactNode, useState } from 'react';
 import { State, WagmiProvider } from 'wagmi';
+import '@coinbase/onchainkit/styles.css';
+import '@rainbow-me/rainbowkit/styles.css';
+import {
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit';
+
 
 import { getConfig } from '../wagmi'; // ensure the path is correct
 
@@ -28,16 +34,12 @@ export function Providers({
     <WagmiProvider config={config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         <OnchainKitProvider
-          apiKey={apiKey || ""} // Provide fallback for missing API key
-          chain={base} // Change to baseSepolia for testing if needed
-          config={{
-            appearance: {
-              name: 'My Pen Is Long', 
-              logo: 'https://onchainkit.xyz/favicon/48x48.png?v4-19-24', 
-            },
-          }}
+          apiKey={apiKey || ""}
+          chain={scrollSepolia}
         >
-          {children}
+          <RainbowKitProvider modalSize="compact">
+            {children}
+          </RainbowKitProvider>
         </OnchainKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

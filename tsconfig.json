@@ -22,6 +22,10 @@
       "@/*": ["./*"]
     }
   },
+<<<<<<< HEAD
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/TaurusKnot.tsx"],
+=======
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", ".next/types/**/*.ts"],
+>>>>>>> 40511e5b29e2db0a9f31cc7bfb4b2df318a52748
   "exclude": ["node_modules"]
 }
