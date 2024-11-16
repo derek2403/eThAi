@@ -50,33 +50,43 @@ export default function Train() {
                 const model = new DecisionTree(split.datasets[0].data);
                 const results = model.train();
 
-                if (!results || typeof results.mse !== 'number') {
-                    throw new Error('Invalid training results');
+                // Debug logs to check model training
+                console.log('Training data:', split.datasets[0].data);
+                console.log('Trained model:', model);
+                console.log('Training results:', results);
+
+                if (!model.tree || !model.labelEncoder) {
+                    throw new Error('Model training failed - missing tree or labelEncoder');
                 }
 
                 setTrainingResults(results);
                 setIsTraining(false);
 
-                // Debug log
-                console.log('Model structure:', {
-                    tree: model.tree,
-                    labelEncoder: model.labelEncoder
-                });
+                // Get wallet address
+                let userAddress;
+                if (window.ethereum) {
+                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    const signer = await provider.getSigner();
+                    userAddress = await signer.getAddress();
+                } else {
+                    throw new Error('Ethereum wallet not found');
+                }
 
                 const timestamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
-                const modelName = `WM_${timestamp}`;
+                const modelName = `${userAddress}_${timestamp}`;
                 const datasetName = split.datasets[0].name || "Weather_2023";
 
-                // Debug logs
-                console.log('Raw model:', model);
-                console.log('Model tree:', model.tree);
-                console.log('Model labelEncoder:', model.labelEncoder);
-
+                // Prepare model data and verify it's not empty
                 const modelData = {
-                    tree: model.tree || {},
-                    labelEncoder: model.labelEncoder || {}
+                    tree: model.getTree(), // Add a method to get the tree if needed
+                    labelEncoder: model.getLabelEncoder() // Add a method to get the encoder if needed
                 };
-                console.log('Model data to be sent:', modelData);
+
+                console.log('Model data to be saved:', modelData);
+
+                if (!modelData.tree || Object.keys(modelData.tree).length === 0) {
+                    throw new Error('Model tree is empty');
+                }
 
                 const saveModelResponse = await fetch('/api/saveModel', {
                     method: 'POST',
@@ -89,9 +99,6 @@ export default function Train() {
                     })
                 });
 
-                // Log the response for debugging
-                console.log('API Response:', await saveModelResponse.clone().json());
-
                 if (!saveModelResponse.ok) {
                     const errorData = await saveModelResponse.json();
                     throw new Error(errorData.message || 'Failed to save model');
@@ -100,31 +107,21 @@ export default function Train() {
                 const { path: modelPath } = await saveModelResponse.json();
                 console.log('Model saved locally at:', modelPath);
 
-                // Compress and store on blockchain
+                // Store on blockchain
                 const compressedModel = await compressModelData(model);
-                const txHash = await storeModelOnChain(modelName, datasetName, {
-                    mse: results.mse || 0.000001,
-                    rmse: results.rmse || 0.001,
-                    rSquared: results.rSquared || 0.5
-                });
+                const txHash = await storeModelOnChain(
+                    userAddress,
+                    modelName, 
+                    datasetName, 
+                    {
+                        mse: results.mse || 0.000001,
+                        rmse: results.rmse || 0.001,
+                        rSquared: results.rSquared || 0.5
+                    }
+                );
 
-                console.log('Model stored on chain:', txHash);
-
-                // Update localStorage
-                splits[splitIndex] = {
-                    ...split,
-                    trainedBy: address,
-                    metrics: {
-                        mse: results.mse,
-                        rmse: results.rmse,
-                        rSquared: results.rSquared
-                    },
-                    modelName,
-                    txHash
-                };
-                localStorage.setItem('splitDatasets', JSON.stringify(splits));
-
-                router.push('/results');
+                setStoreError(null);
+                setStoreTxHash(txHash);
 
             } catch (error) {
                 console.error('Error:', error);
