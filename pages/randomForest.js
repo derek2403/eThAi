@@ -1,162 +1,103 @@
-import { useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import contractConfig from '../utils/modelabi.json';
+"use client";
+import { useState } from 'react';
+
 
 export default function AIChat() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [contract, setContract] = useState(null);
-  const [aiSigner, setAiSigner] = useState(null);
-  const [forestModel, setForestModel] = useState(null);
-  const [address, setAddress] = useState('');
+  
+  // Mock address for demo
+  const address = '0x1234...5678';
 
-  // Initialize model, contract, and wallet
-  useEffect(() => {
-    const init = async () => {
-      // Load model from localStorage
-      const aggregatedModel = localStorage.getItem('aggregatedModel');
-      if (aggregatedModel) {
-        const model = JSON.parse(aggregatedModel);
-        setForestModel(model);
-      }
+  // Weather prediction logic
+  const generateWeatherPrediction = async (query) => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Get wallet address
-      if (window.ethereum) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const userAddress = await signer.getAddress();
-        setAddress(userAddress);
-      }
-
-      // Initialize contract and AI signer
-      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
-      const aiWallet = new ethers.Wallet(process.env.NEXT_PUBLIC_AI_PRIVATE_KEY, provider);
-      setAiSigner(aiWallet);
-
-      const contractInstance = new ethers.Contract(
-        contractConfig.contractAddress,
-        contractConfig.abi,
-        provider
-      );
-      setContract(contractInstance);
-
-      // Listen for new responses
-      contractInstance.on("ResponseReceived", (conversationId, response) => {
-        setMessages(prev => prev.map(msg => 
-          msg.conversationId === conversationId 
-            ? { ...msg, response, isPending: false }
-            : msg
-        ));
-      });
+    // Simple weather patterns
+    const patterns = {
+      temp: { min: 15, max: 35 },
+      humidity: { min: 30, max: 90 }
     };
 
-    init();
+    const getRandomValue = (min, max) => 
+      Math.floor(Math.random() * (max - min + 1) + min);
 
-    return () => {
-      if (contract) {
-        contract.removeAllListeners();
-      }
-    };
-  }, []);
+    const temp = getRandomValue(patterns.temp.min, patterns.temp.max);
+    const humidity = getRandomValue(patterns.humidity.min, patterns.humidity.max);
 
-  // Process prediction using the model
-  const processModelPrediction = async (query) => {
-    if (!forestModel) throw new Error('Model not loaded');
+    // Generate response based on query keywords
+    let condition = 'sunny';
+    if (query.toLowerCase().includes('rain')) condition = 'rainy';
+    if (query.toLowerCase().includes('cloud')) condition = 'cloudy';
 
-    const response = await fetch('/api/predict-forest', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        naturalLanguageInput: query
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Prediction failed');
-    }
-
-    const result = await response.json();
-    return result.prediction;
+    return `The weather is ${condition} with a temperature of ${temp}°C and ${humidity}% humidity.`;
   };
 
-  // Submit query to blockchain
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !contract || !address || !forestModel) return;
+    if (!newMessage.trim() || isLoading) return;
 
     setIsLoading(true);
     try {
-      // Get provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      // User submits query
-      const tx = await contract.connect(signer).submitQuery(newMessage);
-      const receipt = await tx.wait();
-
-      // Find the QuerySubmitted event
-      const queryEvent = receipt.logs.find(log => {
-        try {
-          const parsedLog = contract.interface.parseLog(log);
-          return parsedLog.name === 'QuerySubmitted';
-        } catch (e) {
-          return false;
-        }
-      });
-
-      const parsedEvent = contract.interface.parseLog(queryEvent);
-      const conversationId = parsedEvent.args.conversationId;
-
-      // Add message to UI
+      // Add user message
       setMessages(prev => [...prev, {
         id: Date.now(),
-        conversationId,
         query: newMessage,
         sender: address,
         isPending: true
       }]);
 
-      // Process with actual model and submit response
-      const prediction = await processModelPrediction(newMessage);
-      const responseTx = await contract.connect(aiSigner).submitResponse(conversationId, prediction);
-      await responseTx.wait();
+      // Generate prediction
+      const prediction = await generateWeatherPrediction(newMessage);
+
+      // Update message with response
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.isPending 
+            ? {
+                ...msg,
+                response: prediction,
+                isPending: false
+              }
+            : msg
+        )
+      );
 
       setNewMessage('');
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to send message');
+      alert('Failed to generate weather prediction');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      <div className="bg-white rounded-lg shadow-lg">
-        {/* Chat Header */}
-        <div className="border-b p-4">
-          <h1 className="text-xl font-bold">AI Weather Assistant</h1>
-          {address && (
-            <p className="text-sm text-gray-500">
-              Connected: {address.slice(0, 6)}...{address.slice(-4)}
-            </p>
-          )}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl bg-white rounded-[30px] shadow-2xl p-8">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-bold text-blue-600 mb-4">
+            AI Weather Assistant
+          </h1>
+          <p className="text-gray-500">
+            Connected: {address}
+          </p>
         </div>
 
-        {/* Chat Messages */}
-        <div className="h-[500px] overflow-y-auto p-4 space-y-4">
+        {/* Messages Area */}
+        <div className="min-h-[200px] mb-8 overflow-y-auto max-h-[400px]">
           {messages.map((message) => (
             <div
               key={message.id}
               className={`flex ${
                 message.sender === address ? 'justify-end' : 'justify-start'
-              }`}
+              } mb-4`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`max-w-[80%] rounded-3xl p-4 ${
                   message.sender === address
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100'
@@ -173,28 +114,26 @@ export default function AIChat() {
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleSubmit} className="border-t p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Ask about the weather..."
-              className="flex-1 rounded-lg border p-2"
-              disabled={isLoading || !address || !forestModel}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !address || !forestModel || !newMessage.trim()}
-              className={`px-4 py-2 rounded-lg font-semibold ${
-                isLoading || !address || !forestModel || !newMessage.trim()
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              {isLoading ? 'Sending...' : 'Send'}
-            </button>
-          </div>
+        <form onSubmit={handleSubmit} className="flex gap-4">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Ask about the weather..."
+            className="flex-1 rounded-full bg-gray-50 border-none p-4 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !newMessage.trim()}
+            className={`px-8 py-4 rounded-full text-lg font-medium ${
+              isLoading || !newMessage.trim()
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+            }`}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </button>
         </form>
       </div>
     </div>
