@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-const CONTRACT_ADDRESS = '0xe7533E80B13e34092873257Af615A0A72a3A8367';
+const CONTRACT_ADDRESS = '0x356ED74eE51e4aa5f1Ce9B51329fecEF728621bc';
 const CONTRACT_ABI = [
   "function storeModel(string memory modelName, string memory datasetName, uint256 mse, uint256 rmse, uint256 rSquared) public"
 ];

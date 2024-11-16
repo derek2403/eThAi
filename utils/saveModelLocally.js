@@ -1,7 +1,21 @@
 export const saveModelLocally = async (modelName, model) => {
   try {
-    // Get model data
-    const modelData = model.toJSON();
+    // Extract tree structure and label encoder from the model
+    const modelData = {
+      tree: {
+        feature: model.feature,
+        threshold: model.threshold,
+        left: model.left,
+        right: model.right,
+        value: model.value
+      },
+      labelEncoder: model.labelEncoder || {
+        'sunny': 0,
+        'rainy': 1,
+        'cloudy': 2,
+        'stormy': 3
+      }
+    };
 
     // Send to API
     const response = await fetch('/api/saveModel', {
@@ -21,6 +35,13 @@ export const saveModelLocally = async (modelName, model) => {
     }
 
     const result = await response.json();
+    
+    // Store in localStorage for immediate use
+    localStorage.setItem('aggregatedModel', JSON.stringify({
+      model: { tree: modelData.tree },
+      labelEncoder: { condition: modelData.labelEncoder }
+    }));
+
     console.log(`Model saved successfully at ${result.path}`);
     return result.path;
 

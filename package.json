@@ -17,13 +17,25 @@
     "react-dom": "^18.2.0",
     "three": "^0.170.0",
     "@coinbase/onchainkit": "^0.35.5",
+<<<<<<< HEAD
     "@tanstack/react-query": "^5.60.5",
     "ethers": "^6.13.4",
+=======
+    "@pushprotocol/restapi": "^1.7.29",
+    "@rainbow-me/rainbowkit": "^2.2.0",
+    "@tanstack/react-query": "^5.60.5",
+    "ethers": "^6.13.4",
+    "fs": "^0.0.1-security",
+    "next": "15.0.3",
+>>>>>>> 40511e5b29e2db0a9f31cc7bfb4b2df318a52748
     "openai": "^4.72.0",
     "pako": "^2.1.0",
     "react-error-boundary": "^4.1.2",
+<<<<<<< HEAD
     "@pushprotocol/restapi": "^1.7.29",
     "fs": "^0.0.1-security",
+=======
+>>>>>>> 40511e5b29e2db0a9f31cc7bfb4b2df318a52748
     "wagmi": "^2.12.33"
   },
   "devDependencies": {
