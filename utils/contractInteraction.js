@@ -2,16 +2,16 @@ import { ethers } from 'ethers';
 
 const CONTRACT_ADDRESS = '0xe7533E80B13e34092873257Af615A0A72a3A8367';
 const CONTRACT_ABI = [
-  "function storeModel(string memory modelName, string memory datasetName, uint256 mse, uint256 rmse, uint256 rSquared) public"
+  "function storeModel(string memory modelName, string memory datasetName, uint256 mse, uint256 rmse, uint256 rSquared) public",
+  "function isModelStored(string memory modelName) public view returns (bool)",
+  "function splitDataset(uint256 randomNumber) public payable",
+  "function getFee() public view returns (uint256)"
 ];
 
 export const storeModelOnChain = async (modelName, datasetName, metrics) => {
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    
-    // Check if transaction is already pending for this model
-    const nonce = await provider.getTransactionCount(signer.address, 'latest');
     
     const contract = new ethers.Contract(
       CONTRACT_ADDRESS,
@@ -28,18 +28,10 @@ export const storeModelOnChain = async (modelName, datasetName, metrics) => {
       rSquared: Math.floor(metrics.rSquared * 1e6)
     };
 
-    // First check if model is already stored
-    try {
-      const isStored = await contract.isModelStored(modelName);
-      if (isStored) {
-        console.log('Model already stored on chain');
-        return null;
-      }
-    } catch (error) {
-      console.log('Error checking model status:', error);
-    }
+    // Get latest nonce
+    const nonce = await provider.getTransactionCount(signer.address, 'latest');
 
-    // Send transaction with specific nonce
+    // Send transaction with specific nonce and gas settings
     const tx = await contract.storeModel(
       metricsForContract.modelName,
       metricsForContract.datasetName,
@@ -48,6 +40,7 @@ export const storeModelOnChain = async (modelName, datasetName, metrics) => {
       metricsForContract.rSquared.toString(),
       {
         nonce: nonce,
+        gasLimit: 500000, // Add explicit gas limit
         value: 0
       }
     );
@@ -58,6 +51,8 @@ export const storeModelOnChain = async (modelName, datasetName, metrics) => {
     return receipt.hash;
 
   } catch (error) {
+    console.error('Transaction error:', error);
+    
     // Check if error is due to user rejection
     if (error.code === 4001) {
       throw new Error('Transaction rejected by user');
@@ -68,7 +63,11 @@ export const storeModelOnChain = async (modelName, datasetName, metrics) => {
       throw new Error('Transaction already pending. Please wait or reset MetaMask.');
     }
 
-    console.error('Transaction error:', error);
+    // Handle other errors
+    if (error.message.includes('execution reverted')) {
+      throw new Error('Contract execution failed. Please check your inputs.');
+    }
+
     throw new Error('Failed to store model on chain. Please try again.');
   }
 }; 

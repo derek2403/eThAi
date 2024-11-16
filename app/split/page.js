@@ -4,7 +4,16 @@ import { ethers } from 'ethers';
 import { GENERATOR_ADDRESS, ABI } from '../../utils/constants';
 import { useRouter } from 'next/navigation';
 
+const API_BASE = 'https://nillion-storage-apis-v0.onrender.com';
+const APP_ID = 'b478ac1e-1870-423f-81c3-a76bf72f394a';
+const USER_SEED = 'user_123';
+
 export default function Split() {
+  const [userId, setUserId] = useState('');
+  const [storeIds, setStoreIds] = useState([]);
+  const [nillionStatus, setNillionStatus] = useState('');
+  const [currentStoreId, setCurrentStoreId] = useState(null);
+  const [currentSecretName, setCurrentSecretName] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fee, setFee] = useState(null);
@@ -16,95 +25,168 @@ export default function Split() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [provider, setProvider] = useState(null);
+  const [retrievedData, setRetrievedData] = useState(null);
 
+  // Initialize
   useEffect(() => {
     setMounted(true);
+    checkUserId();
     if (typeof window !== 'undefined') {
       const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
       setProvider(provider);
+      fetchRequiredFee(provider);
     }
   }, []);
 
-  useEffect(() => {
-    async function getFee() {
-      if (!provider) return;
+  // Nillion user check
+  const checkUserId = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nillion_seed: USER_SEED }),
+      });
+      const data = await response.json();
+      setUserId(data.nillion_user_id);
+    } catch (err) {
+      setError('Error checking Nillion user ID: ' + err.message);
+    }
+  };
+
+  // Store secret in Nillion
+  const storeSecret = async (secretValue, secretName) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE}/api/apps/${APP_ID}/secrets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: {
+            nillion_seed: USER_SEED,
+            secret_value: secretValue,
+            secret_name: secretName,
+          },
+          permissions: {
+            retrieve: [],
+            update: [],
+            delete: [],
+            compute: {},
+          },
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to store secret');
+      return data;
+    } catch (err) {
+      setError('Error storing secret: ' + err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Retrieve and parse secret from Nillion
+  const retrieveSecret = async (storeId, secretName) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `${API_BASE}/api/secret/retrieve/${storeId}?retrieve_as_nillion_user_seed=${USER_SEED}&secret_name=${secretName}`
+      );
+      const data = await response.json();
       
-      try {
-        const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
-        const requestFee = await contract.getFee();
-        setFee(requestFee);
-      } catch (err) {
-        console.error('Fee fetch error:', err);
-        setError('Failed to get fee');
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to retrieve secret');
       }
-    }
-    
-    if (provider) {
-      getFee();
-    }
-  }, [provider]);
 
-  const handleFileUpload = useCallback((event) => {
+      // Parse the escaped JSON string properly
+      const parsedSecret = JSON.parse(data.secret.replace(/\\/g, ''));
+      return parsedSecret;
+    } catch (err) {
+      setError('Error retrieving secret: ' + err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // File upload handler
+  const handleFileUpload = useCallback(async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const parsedDataset = JSON.parse(e.target.result);
-          setDataset(parsedDataset);
-          setSize(parsedDataset.datasets[0].data.length);
-          setTransactionStatus('Dataset loaded successfully');
-        } catch (err) {
-          setError('Error parsing JSON file');
-          console.error('Parse error:', err);
-        }
-      };
-      reader.readAsText(file);
+    if (!file) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setNillionStatus('Reading file...');
+
+      const fileContent = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+
+      const jsonData = JSON.parse(fileContent);
+      const secretName = `dataset_split_${Date.now()}`;
+      
+      setNillionStatus('Storing in Nillion...');
+      const storeResult = await storeSecret(
+        JSON.stringify(jsonData),
+        secretName
+      );
+      
+      setCurrentStoreId(storeResult.store_id);
+      setCurrentSecretName(secretName);
+      setNillionStatus('Dataset stored successfully. Ready for splitting.');
+      setTransactionStatus('Dataset stored in Nillion');
+      
+      setSize(jsonData.datasets[0].data.length);
+      setDataset(jsonData);
+      
+    } catch (err) {
+      setError('Error processing file: ' + err.message);
+      console.error('Upload error:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
+  // Watch for results
   const watchForResults = useCallback(async (sequence, txHash) => {
     if (!provider || !dataset) return;
 
     try {
       const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
-
       setTransactionStatus('Waiting for transaction confirmation...');
-
-      // Wait for transaction confirmation first
+      
       const receipt = await provider.waitForTransaction(txHash);
-      console.log('Transaction confirmed:', receipt);
-
       setTransactionStatus('Transaction confirmed. Checking for sequence...');
 
-      // Check past events first
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 100); // Look back 100 blocks
+      const fromBlock = Math.max(0, currentBlock - 100);
       
       const filter = contract.filters.SequenceGenerated();
       const events = await contract.queryFilter(filter, fromBlock, 'latest');
       
-      const matchingEvent = events.find(event => {
-        return event.args && event.args.sequenceNumber.toString() === sequence.toString();
-      });
+      const matchingEvent = events.find(event => 
+        event.args && event.args.sequenceNumber.toString() === sequence.toString()
+      );
 
       if (matchingEvent) {
-        console.log('Sequence found in past events:', matchingEvent.args.sequence);
-        const splits = splitDatasetBySequence(matchingEvent.args.sequence.map(n => n.toString()));
+        const sequenceArray = Array.from(matchingEvent.args.sequence).map(n => n.toString());
+        const splits = splitDatasetBySequence(sequenceArray);
         setSplitDatasets(splits);
         return;
       }
 
       setTransactionStatus('Waiting for sequence generation...');
 
-      // Set up event listener with timeout
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout waiting for sequence')), 60000); // 60 second timeout
+        setTimeout(() => reject(new Error('Timeout waiting for sequence')), 60000);
       });
 
       const eventPromise = new Promise((resolve) => {
         contract.on('SequenceGenerated', (resultSequence, numbers) => {
-          console.log('Event received:', resultSequence.toString(), sequence.toString());
           if (resultSequence.toString() === sequence.toString()) {
             resolve(numbers);
           }
@@ -113,8 +195,8 @@ export default function Split() {
 
       try {
         const numbers = await Promise.race([eventPromise, timeoutPromise]);
-        console.log('Sequence generated:', numbers);
-        const splits = splitDatasetBySequence(numbers.map(n => n.toString()));
+        const sequenceArray = Array.from(numbers).map(n => n.toString());
+        const splits = splitDatasetBySequence(sequenceArray);
         setSplitDatasets(splits);
       } catch (error) {
         throw new Error('Failed to receive sequence: ' + error.message);
@@ -129,13 +211,25 @@ export default function Split() {
     }
   }, [dataset, provider]);
 
+  // Request sequence
   const requestSequence = async () => {
-    if (!provider || !dataset) return;
+    if (!provider || !currentStoreId || !currentSecretName || !fee) return;
 
     try {
       setIsLoading(true);
       setError(null);
       setSplitDatasets(null);
+
+      setNillionStatus('Retrieving dataset from Nillion...');
+      const retrievedDataset = await retrieveSecret(currentStoreId, currentSecretName);
+      
+      if (!retrievedDataset.datasets || !retrievedDataset.datasets[0]?.data) {
+        throw new Error('Invalid dataset structure');
+      }
+
+      const datasetArray = retrievedDataset.datasets[0].data;
+      setSize(datasetArray.length);
+      setDataset(retrievedDataset);
 
       const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY;
       const wallet = new ethers.Wallet(privateKey, provider);
@@ -144,15 +238,15 @@ export default function Split() {
       setTransactionStatus('Generating random number...');
       const userRandomNumber = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
         .map(b => b.toString(16).padStart(2, '0')).join('');
-      console.log('Random number generated:', userRandomNumber);
 
       setTransactionStatus('Requesting sequence...');
-      const tx = await contract.requestSequence(size, userRandomNumber, { value: fee });
-      console.log('Transaction sent:', tx.hash);
-
-      const receipt = await tx.wait();
-      console.log('Transaction receipt:', receipt);
+      const tx = await contract.requestSequence(
+        datasetArray.length, 
+        userRandomNumber, 
+        { value: fee }
+      );
       
+      const receipt = await tx.wait();
       const sequenceRequestEvent = receipt.logs
         .find(log => {
           try {
@@ -169,32 +263,42 @@ export default function Split() {
 
       const parsedEvent = contract.interface.parseLog(sequenceRequestEvent);
       const sequenceNumber = parsedEvent.args.sequenceNumber;
-      console.log('Sequence requested:', sequenceNumber.toString());
 
       await watchForResults(sequenceNumber, tx.hash);
 
     } catch (err) {
-      console.error('Error:', err);
-      setError(err.message || 'Failed to process request');
-      setTransactionStatus('Request failed');
+      setError('Error: ' + err.message);
+      setTransactionStatus('Split request failed');
+      console.error('Split error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Split dataset by sequence
   const splitDatasetBySequence = (sequence) => {
     if (!dataset) {
-      throw new Error('Please upload a dataset first');
+      throw new Error('No dataset available');
     }
 
     const originalDataset = dataset.datasets[0];
     const groupSize = Math.floor(sequence.length / numGroups);
     const splits = [];
 
+    console.log('Original Dataset:', originalDataset);
+    console.log('Sequence:', sequence);
+    console.log('Group Size:', groupSize);
+
     for (let i = 0; i < numGroups; i++) {
       const start = i * groupSize;
       const end = i === numGroups - 1 ? sequence.length : (i + 1) * groupSize;
       const groupIndices = sequence.slice(start, end).map(num => parseInt(num) % originalDataset.data.length);
+
+      console.log(`Split ${i + 1}:`, {
+        start,
+        end,
+        indices: groupIndices
+      });
 
       const splitData = {
         datasets: [{
@@ -212,22 +316,46 @@ export default function Split() {
       splits.push(splitData);
     }
 
+    console.log('Final Splits:', splits);
     localStorage.setItem('splitDatasets', JSON.stringify(splits));
+    setSplitDatasets(splits);
+    
+    // Add navigation to results page
     router.push('/results');
     
     return splits;
   };
 
-  if (!mounted) {
-    return null;
-  }
+  // Add this new function to fetch the required fee
+  const fetchRequiredFee = async (provider) => {
+    try {
+      const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
+      const requiredFee = await contract.getFee();
+      setFee(requiredFee);
+    } catch (err) {
+      console.error('Error fetching fee:', err);
+      setError('Failed to fetch required fee');
+    }
+  };
 
+  // UI remains the same...
   return (
     <div className="min-h-screen bg-gray-100 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Dataset Splitter</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Secure Dataset Splitter</h1>
           
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 className="text-lg font-semibold mb-2">Nillion Storage Status</h2>
+            <p className="text-sm text-gray-600">User ID: {userId || 'Connecting...'}</p>
+            {currentStoreId && (
+              <p className="text-sm text-gray-600">Current Store ID: {currentStoreId}</p>
+            )}
+            {nillionStatus && (
+              <p className="text-sm text-blue-600 mt-2">{nillionStatus}</p>
+            )}
+          </div>
+
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -237,49 +365,85 @@ export default function Split() {
                 type="file"
                 accept=".json"
                 onChange={handleFileUpload}
+                disabled={isLoading}
                 className="mt-1 block w-full"
               />
+              {isLoading && (
+                <p className="text-sm text-gray-500 mt-2">Processing...</p>
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Number of Splits
-              </label>
-              <input
-                type="number"
-                value={numGroups}
-                onChange={(e) => setNumGroups(Math.max(2, parseInt(e.target.value)))}
-                min="2"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
-            </div>
+            {dataset && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Number of Splits
+                  </label>
+                  <input
+                    type="number"
+                    value={numGroups}
+                    onChange={(e) => setNumGroups(Math.max(2, parseInt(e.target.value)))}
+                    min="2"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                  />
+                </div>
 
-            <button
-              onClick={requestSequence}
-              disabled={isLoading || !dataset || !provider}
-              className={`w-full py-2 px-4 rounded-md ${
-                isLoading || !dataset || !provider
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isLoading ? 'Processing...' : 'Split Dataset'}
-            </button>
+                <button
+                  onClick={requestSequence}
+                  disabled={isLoading || !dataset || !provider}
+                  className={`w-full py-2 px-4 rounded-md ${
+                    isLoading || !dataset || !provider
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {isLoading ? 'Processing...' : 'Split Dataset'}
+                </button>
 
-            {transactionStatus && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-md">
-                <p className="text-sm text-blue-700">{transactionStatus}</p>
-              </div>
-            )}
+                {transactionStatus && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-md">
+                    <p className="text-sm text-blue-700">{transactionStatus}</p>
+                  </div>
+                )}
 
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 rounded-md">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 rounded-md">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
+
+        {splitDatasets && (
+          <div className="mt-8 bg-white rounded-lg shadow px-5 py-6 sm:px-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Split Results</h2>
+            <div className="space-y-4">
+              {splitDatasets.map((split, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <h3 className="font-semibold text-lg mb-2">
+                    {split.datasets[0].name}
+                  </h3>
+                  <div className="text-sm text-gray-600">
+                    <p>Rows: {split.datasets[0].rows}</p>
+                    <p>Created: {new Date(split.datasets[0].createdAt).toLocaleString()}</p>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-blue-600">
+                        View Data Sample
+                      </summary>
+                      <pre className="mt-2 p-2 bg-gray-50 rounded overflow-auto max-h-40">
+                        {JSON.stringify(split.datasets[0].data.slice(0, 5), null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
-} 
+}

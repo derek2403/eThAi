@@ -20,7 +20,7 @@ export function WalletComponents() {
   return (
     <div className="flex justify-end">
       <Wallet>
-        <ConnectWallet>
+        <ConnectWallet withWalletAggregator>
           <Avatar className="h-6 w-6" />
           <Name />
         </ConnectWallet>
@@ -32,7 +32,7 @@ export function WalletComponents() {
           </Identity>
           <WalletDropdownDisconnect />
         </WalletDropdown>
-      </Wallet> 
+      </Wallet>
     </div>
   );
 }
