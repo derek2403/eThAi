@@ -1,0 +1,59 @@
+{
+  "type": "aggregated",
+  "timestamp": "2024-11-16T19:14:53.147Z",
+  "models": [
+    {
+      "tree": {
+        "type": "decision",
+        "feature": "temperature",
+        "threshold": 14.8,
+        "left": {
+          "type": "leaf",
+          "value": "sunny"
+        },
+        "right": {
+          "type": "decision",
+          "feature": "temperature",
+          "threshold": 20.9,
+          "left": {
+            "type": "leaf",
+            "value": "cloudy"
+          },
+          "right": {
+            "type": "leaf",
+            "value": "rainy"
+          }
+        }
+      },
+      "labelEncoder": {
+        "classes": [
+          "sunny",
+          "rainy",
+          "cloudy"
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "decision",
+        "feature": "temperature",
+        "threshold": 15.200000000000001,
+        "left": {
+          "type": "leaf",
+          "value": "rainy"
+        },
+        "right": {
+          "type": "leaf",
+          "value": "sunny"
+        }
+      },
+      "labelEncoder": {
+        "classes": [
+          "sunny",
+          "rainy"
+        ]
+      }
+    }
+  ],
+  "modelCount": 2
+}

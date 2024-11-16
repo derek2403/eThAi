@@ -1,0 +1,114 @@
+{
+  "type": "aggregated",
+  "timestamp": "2024-11-16T20:03:29.055Z",
+  "models": [
+    {
+      "tree": {
+        "type": "decision",
+        "feature": "temperature",
+        "threshold": 14.8,
+        "left": {
+          "type": "leaf",
+          "value": "sunny"
+        },
+        "right": {
+          "type": "decision",
+          "feature": "temperature",
+          "threshold": 20.9,
+          "left": {
+            "type": "leaf",
+            "value": "cloudy"
+          },
+          "right": {
+            "type": "leaf",
+            "value": "rainy"
+          }
+        }
+      },
+      "labelEncoder": {
+        "classes": [
+          "sunny",
+          "rainy",
+          "cloudy"
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "decision",
+        "feature": "temperature",
+        "threshold": 15.200000000000001,
+        "left": {
+          "type": "leaf",
+          "value": "rainy"
+        },
+        "right": {
+          "type": "leaf",
+          "value": "sunny"
+        }
+      },
+      "labelEncoder": {
+        "classes": [
+          "sunny",
+          "rainy"
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "leaf",
+        "value": "undefined"
+      },
+      "labelEncoder": {
+        "classes": [
+          null
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "leaf",
+        "value": "undefined"
+      },
+      "labelEncoder": {
+        "classes": [
+          null
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "leaf",
+        "value": "undefined"
+      },
+      "labelEncoder": {
+        "classes": [
+          null
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "leaf",
+        "value": "undefined"
+      },
+      "labelEncoder": {
+        "classes": [
+          null
+        ]
+      }
+    },
+    {
+      "tree": {
+        "type": "leaf",
+        "value": "undefined"
+      },
+      "labelEncoder": {
+        "classes": [
+          null
+        ]
+      }
+    }
+  ],
+  "modelCount": 7
+}

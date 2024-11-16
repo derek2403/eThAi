@@ -1,0 +1,113 @@
+{
+    "contractAddress": "0x4BdFc8a1D09D55E4e2D50F52052e6c4B6932cCfB",
+    "abi": [
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "uint256",
+            "name": "conversationId",
+            "type": "uint256"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "query",
+            "type": "string"
+          }
+        ],
+        "name": "QuerySubmitted",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "uint256",
+            "name": "conversationId",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "response",
+            "type": "string"
+          }
+        ],
+        "name": "ResponseReceived",
+        "type": "event"
+      },
+      {
+        "inputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+        "name": "conversationToUser",
+        "outputs": [{"internalType": "address","name": "","type": "address"}],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+        "name": "conversations",
+        "outputs": [
+          {"internalType": "address","name": "user","type": "address"},
+          {"internalType": "string","name": "query","type": "string"},
+          {"internalType": "string","name": "response","type": "string"},
+          {"internalType": "uint256","name": "timestamp","type": "uint256"},
+          {"internalType": "bool","name": "hasResponse","type": "bool"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{"internalType": "uint256","name": "_conversationId","type": "uint256"}],
+        "name": "getConversation",
+        "outputs": [
+          {"internalType": "address","name": "user","type": "address"},
+          {"internalType": "string","name": "query","type": "string"},
+          {"internalType": "string","name": "response","type": "string"},
+          {"internalType": "uint256","name": "timestamp","type": "uint256"},
+          {"internalType": "bool","name": "hasResponse","type": "bool"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getConversationCount",
+        "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{"internalType": "address","name": "_user","type": "address"}],
+        "name": "getUserConversations",
+        "outputs": [{"internalType": "uint256[]","name": "","type": "uint256[]"}],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{"internalType": "string","name": "_query","type": "string"}],
+        "name": "submitQuery",
+        "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "uint256","name": "_conversationId","type": "uint256"},
+          {"internalType": "string","name": "_response","type": "string"}
+        ],
+        "name": "submitResponse",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ]
+  }
