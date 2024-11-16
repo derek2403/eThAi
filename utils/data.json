@@ -10,7 +10,7 @@
           "month"
         ],
         "target": "condition",
-        "rows": 20,
+        "rows": 30,
         "createdAt": "2024-01-01T00:00:00.000Z",
         "data": [
           {
@@ -131,6 +131,66 @@
             "temperature": 20.6,
             "humidity": 73,
             "month": 4,
+            "condition": "cloudy"
+          },
+          {
+            "temperature": 24.5,
+            "humidity": 48,
+            "month": 5,
+            "condition": "sunny"
+          },
+          {
+            "temperature": 22.8,
+            "humidity": 75,
+            "month": 5,
+            "condition": "cloudy"
+          },
+          {
+            "temperature": 25.3,
+            "humidity": 82,
+            "month": 5,
+            "condition": "rainy"
+          },
+          {
+            "temperature": 26.1,
+            "humidity": 44,
+            "month": 5,
+            "condition": "sunny"
+          },
+          {
+            "temperature": 23.7,
+            "humidity": 79,
+            "month": 5,
+            "condition": "rainy"
+          },
+          {
+            "temperature": 28.4,
+            "humidity": 42,
+            "month": 6,
+            "condition": "sunny"
+          },
+          {
+            "temperature": 27.2,
+            "humidity": 71,
+            "month": 6,
+            "condition": "cloudy"
+          },
+          {
+            "temperature": 29.0,
+            "humidity": 83,
+            "month": 6,
+            "condition": "rainy"
+          },
+          {
+            "temperature": 30.5,
+            "humidity": 38,
+            "month": 6,
+            "condition": "sunny"
+          },
+          {
+            "temperature": 26.8,
+            "humidity": 77,
+            "month": 6,
             "condition": "cloudy"
           }
         ]
