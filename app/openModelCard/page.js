@@ -101,63 +101,81 @@ export default function CloseModelCard() {
   // Rest of your models data remains the same
   const models = [
     {
-      name: "Classification Model",
-      description: "Ideal for categorizing data into predefined classes. Perfect for sentiment analysis, image classification, or spam detection.",
-      requirements: [
-        "Labeled dataset with distinct categories",
-        "Minimum 1000 samples per class",
-        "Balanced class distribution",
-        "Cleaned and preprocessed data"
-      ],
-      returns: [
-        "Probability scores for each class",
-        "Confidence metrics",
-        "Classification report",
-        "Confusion matrix"
-      ],
-      minDataset: "5K+",
-      complexity: "Medium",
-      computation: "Low",
-      icon: "/classification-icon.svg"
-    },
-    {
-        name: "Regression Model",
-        description: "Specialized in predicting continuous numerical values. Best for price prediction, demand forecasting, or risk assessment.",
+        name: "Classification Model",
+        description: "Public dataset training for categorical predictions. Contribute to community-driven classification solutions.",
         requirements: [
-          "Continuous numerical target variable",
-          "Feature-rich dataset",
-          "Normalized numerical features",
-          "Time-series data (if applicable)"
+          "Publicly available labeled datasets",
+          "Minimum 1000 samples per category",
+          "Documented data distribution",
+          "Open-source preprocessing pipeline"
         ],
         returns: [
-          "Numerical predictions",
-          "Confidence intervals",
-          "Error metrics (RMSE, MAE)",
-          "Feature importance"
+          "Community recognition and contributions",
+          "Model performance benchmarks",
+          "Public research citations",
+          "Open-source project portfolio"
+        ],
+        minDataset: "5K+",
+        complexity: "Medium",
+        computation: "Low",
+        benefits: [
+          "Knowledge sharing with community",
+          "Public research impact",
+          "GitHub contribution history",
+          "Collaboration opportunities"
+        ],
+        icon: "/classification-icon.svg"
+      },
+      {
+        name: "Regression Model",
+        description: "Community-driven numerical prediction training. Contribute to public forecasting models.",
+        requirements: [
+          "Open-source numerical datasets",
+          "Public feature documentation",
+          "Standardized data formats",
+          "Reproducible preprocessing steps"
+        ],
+        returns: [
+          "Public model benchmarks",
+          "Community feedback and improvements",
+          "Research collaboration opportunities",
+          "Project documentation credits"
         ],
         minDataset: "10K+",
         complexity: "Medium",
         computation: "Medium",
+        benefits: [
+          "Research paper collaborations",
+          "Model optimization insights",
+          "Community recognition",
+          "Portfolio development"
+        ],
         icon: "/regression-icon.svg"
       },
       {
         name: "Transformer Model",
-        description: "Advanced language model for NLP tasks. Suitable for text generation, translation, or content analysis.",
+        description: "Contribute to open-source language models. Advance public NLP research.",
         requirements: [
-          "Large text corpus",
-          "Clean text data",
-          "Consistent formatting",
-          "Domain-specific vocabulary"
+          "Public text corpora",
+          "Open-source preprocessing tools",
+          "Community guidelines compliance",
+          "Documentation standards"
         ],
         returns: [
-          "Text embeddings",
-          "Token probabilities",
-          "Attention maps",
-          "Generated sequences"
+          "Research community recognition",
+          "Model architecture contributions",
+          "Public dataset improvements",
+          "Academic collaboration opportunities"
         ],
         minDataset: "50K+",
         complexity: "High",
         computation: "High",
+        benefits: [
+          "Academic publication potential",
+          "Research community impact",
+          "Open-source contribution record",
+          "Public speaking opportunities"
+        ],
         icon: "/transformer-icon.svg"
       }
   ];

@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader, Progress } from "@nextui-org/react";
 import { storeModelOnChain } from '../../utils/contractInteraction';
 import { DecisionTree } from '@/model/DecisionTree';
 import pako from 'pako';
+import { Link } from 'next/link';
 import { saveModelLocally } from '../../utils/modelStorage';
 import { WalletComponents } from '../../components/Wallet';
 
@@ -286,8 +287,12 @@ export default function Train() {
               )}
             </CardBody>
           </Card>
+          
         </div>
       )}
+      
+
     </div>
+
   );
 }

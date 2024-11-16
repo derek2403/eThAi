@@ -1,9 +1,8 @@
-
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import styles from '../styles/header.module.css';
+import { WalletComponents } from './Wallet';
 
 export function Header() {
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -22,14 +21,17 @@ export function Header() {
             <div className={styles.navLinks}>
                 <Link href="/">Home</Link>
                 
-                <Link href="/contact">Access Compute</Link>
+                <Link href="/dao">DAO</Link>
 
                 <div
                     className={styles.dropdown}
                     onMouseEnter={toggleDropdown}
                     onMouseLeave={toggleDropdown}
                 >
-                    <span className={styles.dropdownLink}>Provide Compute  <span className='opacity-30'>V</span> </span>
+                    <span className={styles.dropdownLink}>
+                        Be Our Partner
+                        <span className={`${styles.arrow} ${dropdownOpen ? styles.arrowUp : styles.arrowDown}`}>▼</span>
+                    </span>
                     {dropdownOpen && (
                         <div className={styles.dropdownMenu}>
                             <Link href="/closeModelCard">Closed-source Model</Link>
@@ -38,9 +40,7 @@ export function Header() {
                     )}
                 </div>
             </div>
-            <div className={styles.joinButton}>
-                <button>Join Us</button>
-            </div>
+                <WalletComponents />
         </div>
     );
 }

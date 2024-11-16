@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import contractConfig from '@/utils/modelabi.json';
 import { useAccount } from 'wagmi';
+import styles from '../../styles/aichat.css';
+import {Header} from '../../components/Header';
 
 export default function RandomForest() {
   const [messages, setMessages] = useState([]);
@@ -122,66 +124,68 @@ export default function RandomForest() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      <div className="bg-white rounded-lg shadow-lg">
-        <div className="border-b p-4">
-          <h1 className="text-xl font-bold">AI Weather Assistant</h1>
-          {address && (
-            <p className="text-sm text-gray-500">
-              Connected: {address.slice(0, 6)}...{address.slice(-4)}
-            </p>
-          )}
-        </div>
-
-        <div className="h-[500px] overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.sender === address ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.sender === address
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100'
-                }`}
-              >
-                <p>{message.query}</p>
-                {message.response && <p className="mt-2">{message.response}</p>}
-                {message.isPending && (
-                  <p className="text-sm italic mt-1">Processing prediction...</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="border-t p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Ask about the weather..."
-              className="flex-1 rounded-lg border p-2"
-              disabled={isLoading || !address || !forestModel}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !address || !forestModel || !newMessage.trim()}
-              className={`px-4 py-2 rounded-lg font-semibold ${
-                isLoading || !address || !forestModel || !newMessage.trim()
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              {isLoading ? 'Sending...' : 'Send'}
-            </button>
+    <div>
+      <Header />
+      <div className="chat-container">
+        <div className="chat-header">
+        <h1 className="chat-title">AI Weather Assistant</h1>
+        {address && (
+          <div className="wallet-info">
+            <span className="connection-indicator"></span>
+            Connected: {address.slice(0, 6)}...{address.slice(-4)}
           </div>
-        </form>
+        )}
       </div>
+  
+      <div className="messages-container">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`message-wrapper ${
+              message.sender === address ? 'sent' : 'received'
+            }`}
+          >
+            <div
+              className={`message-bubble ${
+                message.sender === address ? 'sent' : 'received'
+              }`}
+            >
+              <div className="message-text">{message.query}</div>
+              {message.response && (
+                <div className="message-response">{message.response}</div>
+              )}
+              {message.isPending && (
+                <div className="pending-message">Processing prediction...</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+  
+      <form onSubmit={handleSubmit} className="input-container">
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Ask about the weather..."
+            className="chat-input"
+            disabled={isLoading || !address || !forestModel}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !address || !forestModel || !newMessage.trim()}
+            className={`send-button ${
+              isLoading || !address || !forestModel || !newMessage.trim()
+                ? 'send-button-disabled'
+                : 'send-button-enabled'
+            }`}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </button>
+        </div>
+      </form>
+    </div>
     </div>
   );
 }

@@ -101,63 +101,81 @@ export default function CloseModelCard() {
   // Rest of your models data remains the same
   const models = [
     {
-      name: "Classification Model",
-      description: "Ideal for categorizing data into predefined classes. Perfect for sentiment analysis, image classification, or spam detection.",
-      requirements: [
-        "Labeled dataset with distinct categories",
-        "Minimum 1000 samples per class",
-        "Balanced class distribution",
-        "Cleaned and preprocessed data"
-      ],
-      returns: [
-        "Probability scores for each class",
-        "Confidence metrics",
-        "Classification report",
-        "Confusion matrix"
-      ],
-      minDataset: "5K+",
-      complexity: "Medium",
-      computation: "Low",
-      icon: "/classification-icon.svg"
-    },
-    {
-        name: "Regression Model",
-        description: "Specialized in predicting continuous numerical values. Best for price prediction, demand forecasting, or risk assessment.",
+        name: "Classification Model",
+        description: "Private data classification training with reward incentives. Secure and confidential training environment.",
         requirements: [
-          "Continuous numerical target variable",
-          "Feature-rich dataset",
-          "Normalized numerical features",
-          "Time-series data (if applicable)"
+          "Encrypted labeled datasets",
+          "Secure data handling compliance",
+          "NDA agreement",
+          "Private preprocessing pipeline"
         ],
         returns: [
-          "Numerical predictions",
-          "Confidence intervals",
-          "Error metrics (RMSE, MAE)",
-          "Feature importance"
+          "Direct token rewards",
+          "Performance-based bonuses",
+          "Private model ownership",
+          "Exclusive usage rights"
+        ],
+        minDataset: "5K+",
+        complexity: "Medium",
+        computation: "Low",
+        benefits: [
+          "Immediate token compensation",
+          "Revenue sharing opportunities",
+          "Private deployment rights",
+          "Exclusive client access"
+        ],
+        icon: "/classification-icon.svg"
+      },
+      {
+        name: "Regression Model",
+        description: "Confidential numerical prediction training with competitive rewards. Enterprise-grade security.",
+        requirements: [
+          "Private numerical datasets",
+          "Secure feature handling",
+          "Confidentiality agreement",
+          "Enterprise compliance"
+        ],
+        returns: [
+          "Premium token rewards",
+          "Accuracy-based incentives",
+          "Commercial usage rights",
+          "Client network access"
         ],
         minDataset: "10K+",
         complexity: "Medium",
         computation: "Medium",
+        benefits: [
+          "Higher reward multipliers",
+          "Enterprise client exposure",
+          "Commercial licensing options",
+          "Priority support access"
+        ],
         icon: "/regression-icon.svg"
       },
       {
         name: "Transformer Model",
-        description: "Advanced language model for NLP tasks. Suitable for text generation, translation, or content analysis.",
+        description: "High-security NLP model training with premium incentives. Enterprise-level confidentiality.",
         requirements: [
-          "Large text corpus",
-          "Clean text data",
-          "Consistent formatting",
-          "Domain-specific vocabulary"
+          "Encrypted text datasets",
+          "Enterprise security protocols",
+          "Legal compliance verification",
+          "Secure compute environment"
         ],
         returns: [
-          "Text embeddings",
-          "Token probabilities",
-          "Attention maps",
-          "Generated sequences"
+          "Premium token rewards",
+          "Performance incentives",
+          "Enterprise deployment rights",
+          "Client network privileges"
         ],
         minDataset: "50K+",
         complexity: "High",
         computation: "High",
+        benefits: [
+          "Maximum reward potential",
+          "Enterprise partnership opportunities",
+          "Commercial deployment rights",
+          "Priority project access"
+        ],
         icon: "/transformer-icon.svg"
       }
   ];

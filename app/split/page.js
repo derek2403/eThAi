@@ -6,7 +6,7 @@ import { ethers } from 'ethers';
 import { GENERATOR_ADDRESS, ABI } from '@/utils/constants';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
-
+import styles from '../../styles/split.css';
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://nillion-storage-apis-v0.onrender.com';
 const APP_ID = process.env.NEXT_PUBLIC_APP_ID || 'b478ac1e-1870-423f-81c3-a76bf72f394a';
 const USER_SEED = process.env.NEXT_PUBLIC_USER_SEED || 'user_123';
@@ -220,85 +220,80 @@ export default function Split() {
   if (!mounted) return null;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container">
       <Header />
       
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 className="text-3xl font-bold mb-6 text-center">eThAi Data Splitter</h1>
-        <p className="text-gray-600 mb-8 text-center">
+      <div className="card">
+        <h1 className="title">Welcome to eThAi</h1>
+        <p className="subtitle">
           Transform your data into personalized AI models with guaranteed integrity
         </p>
-
-        <div className="space-y-8">
-          {/* Step 1: Upload */}
-          <div className="border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">1. Upload Dataset</h2>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="fileInput"
-              />
-              <label
-                htmlFor="fileInput"
-                className="cursor-pointer text-blue-500 hover:text-blue-600"
-              >
-                Drop your JSON file here or click to browse
-              </label>
-              {uploadedDataset && (
-                <p className="mt-2 text-green-500">Dataset loaded successfully</p>
-              )}
+  
+        <div className="step-container fade-in">
+          <div className="step-number">1</div>
+          <h2 className="step-title">Upload your dataset</h2>
+          <div className="file-upload">
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              id="fileInput"
+            />
+            <div className="file-upload-label">
+              {uploadedDataset 
+                ? 'Dataset loaded successfully!' 
+                : 'Drop your JSON file here or click to browse'
+              }
             </div>
           </div>
-
-          {/* Step 2: Partitions */}
-          <div className="border rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">2. Select Partitions</h2>
-            <div className="flex items-center justify-center space-x-4">
-              <button
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-                onClick={() => setNumGroups(prev => Math.max(2, prev - 1))}
-              >
-                −
-              </button>
-              <span className="text-xl font-semibold">{numGroups}</span>
-              <button
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-                onClick={() => setNumGroups(prev => prev + 1)}
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Split Button */}
-          <button
-            onClick={handleSplitRequest}
-            disabled={isLoading || !uploadedDataset || !provider}
-            className={`w-full py-3 rounded-lg font-semibold transition-colors
-              ${isLoading || !uploadedDataset || !provider
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-          >
-            {isLoading ? 'Processing...' : 'Split Dataset'}
-          </button>
-
-          {/* Status Messages */}
-          {transactionStatus && (
-            <div className="p-4 bg-blue-50 text-blue-700 rounded-lg">
-              {transactionStatus}
-            </div>
-          )}
-
-          {error && (
-            <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
         </div>
+  
+        <div className="step-container fade-in">
+          <div className="step-number">2</div>
+          <h2 className="step-title">Select number of partitions</h2>
+          <div className="number-input-container">
+            <div 
+              className="number-control"
+              onClick={() => setNumGroups(prev => Math.max(2, prev - 1))}
+            >
+              −
+            </div>
+            <div className="number-display">
+              {numGroups}
+            </div>
+            <div 
+              className="number-control"
+              onClick={() => setNumGroups(prev => prev + 1)}
+            >
+              +
+            </div>
+          </div>
+        </div>
+  
+        <button
+          onClick={handleSplitRequest}
+          disabled={isLoading || !uploadedDataset || !provider}
+          className={`train-button ${
+            isLoading || !uploadedDataset || !provider
+              ? 'train-button-disabled'
+              : 'train-button-enabled'
+          }`}
+        >
+          {isLoading ? 'Processing...' : 'Split Dataset'}
+        </button>
+  
+        {transactionStatus && (
+          <div className="status-message success fade-in">
+            {transactionStatus}
+          </div>
+        )}
+  
+        {error && (
+          <div className="status-message error fade-in">
+            {error}
+          </div>
+        )}
+  
       </div>
     </div>
   );
