@@ -1,11 +1,12 @@
-'use client';
+
+'use client'
 
 import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
-import contractConfig from '../../utils/modelabi.json';
+import contractConfig from '@/utils/modelabi.json';
 import { useAccount } from 'wagmi';
 
-export default function AIChat() {
+export default function RandomForest() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,42 +16,34 @@ export default function AIChat() {
   const { address } = useAccount();
 
   useEffect(() => {
+    // Load model from localStorage
     const aggregatedModel = localStorage.getItem('aggregatedModel');
     if (aggregatedModel) {
       const model = JSON.parse(aggregatedModel);
       setForestModel(model);
     }
 
+    // Initialize contract and AI signer
     const initContract = async () => {
-      try {
-        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL, {
-          chainId: 80001,
-          name: 'Mumbai',
-          polling: true,
-          pollingInterval: 4000,
-          timeout: 10000
-        });
-        
-        const aiWallet = new ethers.Wallet(process.env.NEXT_PUBLIC_AI_PRIVATE_KEY, provider);
-        setAiSigner(aiWallet);
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+      const aiWallet = new ethers.Wallet(process.env.NEXT_PUBLIC_AI_PRIVATE_KEY, provider);
+      setAiSigner(aiWallet);
 
-        const contractInstance = new ethers.Contract(
-          contractConfig.contractAddress,
-          contractConfig.abi,
-          provider
-        );
-        setContract(contractInstance);
+      const contractInstance = new ethers.Contract(
+        contractConfig.contractAddress,
+        contractConfig.abi,
+        provider
+      );
+      setContract(contractInstance);
 
-        contractInstance.on("ResponseReceived", (conversationId, response) => {
-          setMessages(prev => prev.map(msg => 
-            msg.conversationId === conversationId 
-              ? { ...msg, response, isPending: false }
-              : msg
-          ));
-        });
-      } catch (error) {
-        console.error('Contract initialization error:', error);
-      }
+      // Listen for new responses
+      contractInstance.on("ResponseReceived", (conversationId, response) => {
+        setMessages(prev => prev.map(msg => 
+          msg.conversationId === conversationId 
+            ? { ...msg, response, isPending: false }
+            : msg
+        ));
+      });
     };
 
     initContract();
@@ -76,14 +69,11 @@ export default function AIChat() {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Prediction failed');
+      throw new Error('Prediction failed');
     }
 
     const result = await response.json();
-    return `Based on the weather parameters (Temperature: ${result.parameters.temperature}°C, Humidity: ${result.parameters.humidity}%, Month: ${result.parameters.month}), 
-    I predict the weather will be: ${result.prediction} 
-    (Confidence: ${result.confidence}%)`;
+    return result.prediction;
   };
 
   const handleSubmit = async (e) => {
@@ -107,10 +97,6 @@ export default function AIChat() {
         }
       });
 
-      if (!queryEvent) {
-        throw new Error('Query event not found in transaction');
-      }
-
       const parsedEvent = contract.interface.parseLog(queryEvent);
       const conversationId = parsedEvent.args.conversationId;
 
@@ -128,8 +114,8 @@ export default function AIChat() {
 
       setNewMessage('');
     } catch (error) {
-      console.error('Detailed error:', error);
-      alert(error.message || 'Failed to send message');
+      console.error('Error:', error);
+      alert('Failed to send message');
     } finally {
       setIsLoading(false);
     }

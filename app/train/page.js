@@ -94,11 +94,6 @@ export default function Train() {
               // Check network
               const chainId = await window.ethereum.request({ method: 'eth_chainId' });
               console.log('Current chainId:', chainId);
-              
-              if (chainId !== '0x13882') { // Mumbai testnet
-                setStoreError('Please connect to Mumbai testnet');
-                return;
-              }
 
               // Check balance
               const provider = new ethers.BrowserProvider(window.ethereum);

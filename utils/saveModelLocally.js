@@ -1,6 +1,18 @@
-export const saveModelLocally = async (modelName, model) => {
+import { ethers } from 'ethers';
+
+export const saveModelLocally = async (modelName, model, address) => {
   try {
-    // Extract tree structure and label encoder from the model
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Create a signature for model verification
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const message = `Saving model: ${modelName} at ${Date.now()}`;
+    const signer = await provider.getSigner(address);
+    const signature = await signer.signMessage(message);
+
+    // Extract and format model data
     const modelData = {
       tree: {
         feature: model.feature,
@@ -14,6 +26,12 @@ export const saveModelLocally = async (modelName, model) => {
         'rainy': 1,
         'cloudy': 2,
         'stormy': 3
+      },
+      metadata: {
+        createdBy: address,
+        createdAt: new Date().toISOString(),
+        signature: signature,
+        message: message
       }
     };
 
@@ -22,10 +40,12 @@ export const saveModelLocally = async (modelName, model) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Wallet-Address': address
       },
       body: JSON.stringify({
         modelName,
-        modelData
+        modelData,
+        signature
       })
     });
 
@@ -36,10 +56,15 @@ export const saveModelLocally = async (modelName, model) => {
 
     const result = await response.json();
     
-    // Store in localStorage for immediate use
+    // Store in localStorage with wallet info
     localStorage.setItem('aggregatedModel', JSON.stringify({
       model: { tree: modelData.tree },
-      labelEncoder: { condition: modelData.labelEncoder }
+      labelEncoder: { condition: modelData.labelEncoder },
+      metadata: {
+        owner: address,
+        savedAt: new Date().toISOString(),
+        modelPath: result.path
+      }
     }));
 
     console.log(`Model saved successfully at ${result.path}`);
@@ -47,6 +72,6 @@ export const saveModelLocally = async (modelName, model) => {
 
   } catch (error) {
     console.error('Error saving model locally:', error);
-    throw new Error('Failed to save model file');
+    throw new Error(`Failed to save model: ${error.message}`);
   }
 }; 
