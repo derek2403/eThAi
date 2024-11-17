@@ -126,6 +126,7 @@ export default function Split() {
       setIsLoading(true);
       setError(null);
       setSplitDatasets(null);
+      setTransactionStatus('Initializing split request...');
 
       // Retrieve dataset from Nillion
       setTransactionStatus('Retrieving dataset from Nillion...');
@@ -156,10 +157,17 @@ export default function Split() {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      // Request sequence from contract
+      // Request sequence from contract with longer timeout
       setTransactionStatus('Requesting sequence...');
-      const dataLength = dataset.datasets[0].data.length;
-      const tx = await contract.requestSequence(dataLength, userRandomNumber, { value: fee });
+      const dataLength = uploadedDataset.datasets[0].data.length;
+      
+      // Add transaction options with higher gas limit
+      const txOptions = {
+        value: fee,
+        gasLimit: 500000, // Increased gas limit
+      };
+
+      const tx = await contract.requestSequence(dataLength, userRandomNumber, txOptions);
       
       setTransactionStatus('Waiting for transaction confirmation...');
       const receipt = await tx.wait();
@@ -178,44 +186,63 @@ export default function Split() {
         throw new Error('Sequence request event not found');
       }
 
-      // Watch for sequence generation
+      // Watch for sequence generation with improved timeout handling
       const parsedEvent = contract.interface.parseLog(sequenceRequestEvent);
       const sequenceNumber = parsedEvent.args.sequenceNumber;
 
       setTransactionStatus('Waiting for sequence generation...');
-      
-      // Set up event listener with timeout
-      const sequence = await Promise.race([
-        new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            contract.removeAllListeners('SequenceGenerated');
-            reject(new Error('Timeout waiting for sequence'));
-          }, 60000);
 
-          contract.on('SequenceGenerated', (resultSequence, numbers) => {
-            if (resultSequence.toString() === sequenceNumber.toString()) {
-              clearTimeout(timeout);
-              contract.removeAllListeners('SequenceGenerated');
-              resolve(Array.from(numbers).map(n => n.toString()));
-            }
-          });
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Operation timed out')), 70000)
-        )
-      ]);
+      // Increased timeout duration and better error handling
+      const sequence = await new Promise((resolve, reject) => {
+        let timeoutId;
+        let eventListener;
+
+        const cleanup = () => {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (eventListener) contract.removeListener('SequenceGenerated', eventListener);
+        };
+
+        eventListener = (resultSequence, numbers) => {
+          if (resultSequence.toString() === sequenceNumber.toString()) {
+            cleanup();
+            resolve(Array.from(numbers).map(n => n.toString()));
+          }
+        };
+
+        contract.on('SequenceGenerated', eventListener);
+
+        timeoutId = setTimeout(() => {
+          cleanup();
+          reject(new Error('Sequence generation timed out. Please try again with a smaller dataset or fewer partitions.'));
+        }, 120000); // Increased to 2 minutes
+      });
 
       // Split dataset using sequence
-      const splits = splitDatasetBySequence(sequence, dataset);
+      setTransactionStatus('Splitting dataset...');
+      const splits = splitDatasetBySequence(sequence);
       setSplitDatasets(splits);
       
       // Store splits in localStorage and redirect
       localStorage.setItem('splitDatasets', JSON.stringify(splits));
+      setTransactionStatus('Split successful! Redirecting...');
+      
+      // Add small delay before redirect to show success message
+      await new Promise(resolve => setTimeout(resolve, 1000));
       router.push('/results');
 
     } catch (err) {
       console.error('Split error:', err);
-      setError(err.message || 'Failed to split dataset');
+      let errorMessage = 'Failed to split dataset: ';
+      
+      if (err.message.includes('Timeout')) {
+        errorMessage += 'Operation timed out. Please try again with a smaller dataset or fewer partitions.';
+      } else if (err.message.includes('insufficient funds')) {
+        errorMessage += 'Insufficient funds to complete the transaction.';
+      } else {
+        errorMessage += err.message;
+      }
+      
+      setError(errorMessage);
       setTransactionStatus('Split request failed');
     } finally {
       setIsLoading(false);
