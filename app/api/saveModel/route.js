@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { createHash } from 'crypto';
-
+import { SignProtocolClient, SpMode, EvmChains } from '@ethsign/sp-sdk';
+import { createPublicClient, http } from 'viem';
+import { scrollSepolia } from 'viem/chains';
 
 // Function to generate hash of data
 function generateHash(data) {
@@ -11,25 +13,31 @@ function generateHash(data) {
     .digest('hex');
 }
 
+// Initialize Sign Protocol client
+const initializeSignClient = () => {
+  const publicClient = createPublicClient({
+    chain: scrollSepolia,
+    transport: http()
+  });
+
+  return new SignProtocolClient(SpMode.OnChain, {
+    chain: EvmChains.scrollSepolia,
+    publicClient
+  });
+};
+
 // Track processed attestations to prevent duplicates
 const processedAttestations = new Set();
 
 export async function POST(request) {
   try {
-    const { modelName, modelData, attestationId } = await request.json();
+    const { modelName, modelData } = await request.json();
     
-    // Check if this attestation was already processed
-    if (attestationId && processedAttestations.has(attestationId)) {
-      return NextResponse.json(
-        { message: 'Attestation already processed' },
-        { status: 400 }
-      );
-    }
-
     // Generate hashes
     const modelHash = generateHash(modelData);
     const datasetHash = generateHash(modelData.trainingData || {});
     
+    // Save model file
     const modelsDir = join(process.cwd(), 'public', 'models');
     try {
       await mkdir(modelsDir, { recursive: true });
@@ -44,28 +52,41 @@ export async function POST(request) {
       datasetHash
     }, null, 2));
 
-    // Format attestation data according to schema
-    const attestation = {
-      schema: "onchain_evm_534351_0x6e",
+    // Create attestation using Sign Protocol
+    const signClient = initializeSignClient();
+    const attestationData = {
+      schemaId: "0x6e", // Your schema ID for model attestations
       data: {
-        ModelHash: modelHash,      // Match schema case
-        datasetHash: datasetHash,
-        modelName: modelName,
-        timestamp: Math.floor(Date.now() / 1000) // Unix timestamp in seconds
+        ModelHash: modelHash,
+        DatasetHash: datasetHash,
+        ModelName: modelName,
+        Timestamp: Math.floor(Date.now() / 1000)
       }
     };
 
-    // Track this attestation if an ID was provided
-    if (attestationId) {
-      processedAttestations.add(attestationId);
-    }
+    const attestationResponse = await signClient.createAttestation(attestationData);
+    const attestationId = attestationResponse.attestationId;
+
+    // Track this attestation
+    processedAttestations.add(attestationId);
+
+    // Format attestation data according to schema
+    const attestation = {
+      schema: "onchain_evm_534351_0x6e", // Match your schema ID
+      data: attestationData.data,
+      attestationId
+    };
+
+    // The schema hook will automatically trigger to add funds on the smart contract
+    // based on the attestation creation
 
     return NextResponse.json({ 
       message: 'Model saved successfully',
       path: `/models/${modelName}.json`,
       modelHash,
       datasetHash,
-      attestation
+      attestation,
+      attestationId
     });
 
   } catch (error) {

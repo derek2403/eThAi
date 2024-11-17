@@ -10,9 +10,6 @@ import pako from 'pako';
 import { Link } from 'next/link';
 import { saveModelLocally } from '../../utils/modelStorage';
 import { WalletComponents } from '../../components/Wallet';
-import { SignProtocolClient, SpMode, EvmChains } from '@ethsign/sp-sdk';
-import { createWalletClient, custom, createPublicClient, http } from 'viem';
-import { scrollSepolia } from 'viem/chains';
 
 import styles from '../../styles/train.css';
 import { Header } from '../../components/Header';
@@ -49,34 +46,6 @@ export default function Train() {
   const [trainerAddress, setTrainerAddress] = useState('');
   const [storeError, setStoreError] = useState(null);
   const router = useRouter();
-  const [signClient, setSignClient] = useState(null);
-
-  // Add this function to initialize the Sign Protocol client
-  const initializeSignClient = async () => {
-    if (window.ethereum) {
-      const walletClient = createWalletClient({
-        chain: scrollSepolia,
-        transport: custom(window.ethereum)
-      });
-
-      const publicClient = createPublicClient({
-        chain: scrollSepolia,
-        transport: http()
-      });
-
-      const client = new SignProtocolClient(SpMode.OnChain, {
-        chain: EvmChains.scrollSepolia,
-        walletClient,
-        publicClient
-      });
-
-      setSignClient(client);
-    }
-  };
-
-  useEffect(() => {
-    initializeSignClient();
-  }, []);
 
   useEffect(() => {
     const initializeTraining = async () => {
