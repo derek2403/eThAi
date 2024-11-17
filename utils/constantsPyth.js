@@ -4,47 +4,6 @@ export const ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "uint64",
-				"name": "sequence",
-				"type": "uint64"
-			},
-			{
-				"internalType": "address",
-				"name": "provider",
-				"type": "address"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "randomNumber",
-				"type": "bytes32"
-			}
-		],
-		"name": "_entropyCallback",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "numSplits",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "userRandomNumber",
-				"type": "bytes32"
-			}
-		],
-		"name": "requestShuffle",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "address",
 				"name": "_entropy",
 				"type": "address"
@@ -122,8 +81,27 @@ export const ABI = [
 		"type": "event"
 	},
 	{
-		"stateMutability": "payable",
-		"type": "receive"
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "sequence",
+				"type": "uint64"
+			},
+			{
+				"internalType": "address",
+				"name": "provider",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "randomNumber",
+				"type": "bytes32"
+			}
+		],
+		"name": "_entropyCallback",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	},
 	{
 		"inputs": [],
@@ -150,5 +128,27 @@ export const ABI = [
 		],
 		"stateMutability": "view",
 		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "numSplits",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "userRandomNumber",
+				"type": "bytes32"
+			}
+		],
+		"name": "requestShuffle",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
 	}
 ]

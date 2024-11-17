@@ -1,0 +1,31 @@
+{
+  "tree": {
+    "type": "decision",
+    "feature": "humidity",
+    "threshold": 74,
+    "left": {
+      "type": "decision",
+      "feature": "temperature",
+      "threshold": 15.05,
+      "left": {
+        "type": "leaf",
+        "value": "sunny"
+      },
+      "right": {
+        "type": "leaf",
+        "value": "cloudy"
+      }
+    },
+    "right": {
+      "type": "leaf",
+      "value": "rainy"
+    }
+  },
+  "labelEncoder": {
+    "classes": [
+      "rainy",
+      "cloudy",
+      "sunny"
+    ]
+  }
+}

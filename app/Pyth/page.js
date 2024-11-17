@@ -149,27 +149,29 @@ export default function DatasetShuffler() {
             
             const receipt = await tx.wait();
             console.log('Transaction receipt:', receipt);
-            
-            // Detailed logging of receipt
-            console.log('Transaction confirmed:', {
-                hash: receipt.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString(),
-                status: receipt.status,
-                logs: receipt.logs
-            });
 
-            const requestEvent = receipt.logs.find(log => {
+            // Find the SequenceRequested event by decoding logs
+            let sequenceNumber;
+            for (const log of receipt.logs) {
                 try {
-                    const parsed = contract.interface.parseLog(log);
-                    return parsed.name === 'SequenceRequested';
+                    const parsedLog = contract.interface.parseLog({
+                        topics: log.topics,
+                        data: log.data
+                    });
+                    
+                    if (parsedLog.name === 'SequenceRequested') {
+                        sequenceNumber = parsedLog.args.sequenceNumber;
+                        break;
+                    }
                 } catch (e) {
-                    return false;
+                    continue;
                 }
-            });
+            }
 
-            const parsedLog = contract.interface.parseLog(requestEvent);
-            const sequenceNumber = parsedLog.args.sequenceNumber;
+            if (!sequenceNumber) {
+                throw new Error('SequenceRequested event not found in transaction logs');
+            }
+
             console.log('Sequence requested:', sequenceNumber.toString());
             
             // Check for past events first

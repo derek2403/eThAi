@@ -1,0 +1,21 @@
+{
+  "tree": {
+    "type": "decision",
+    "feature": "humidity",
+    "threshold": 65,
+    "left": {
+      "type": "leaf",
+      "value": "sunny"
+    },
+    "right": {
+      "type": "leaf",
+      "value": "rainy"
+    }
+  },
+  "labelEncoder": {
+    "classes": [
+      "rainy",
+      "sunny"
+    ]
+  }
+}

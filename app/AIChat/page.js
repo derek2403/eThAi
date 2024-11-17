@@ -3,11 +3,21 @@
 import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import contractConfig from '@/utils/modelabi.json';
-import { useAccount } from 'wagmi';
 import styles from '../../styles/aichat.css';
 import { Header } from '../../components/Header';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-export default function RandomForest() {
+const queryClient = new QueryClient()
+
+export default function RandomForestWrapper() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RandomForest />
+    </QueryClientProvider>
+  )
+}
+
+function RandomForest() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,11 +25,29 @@ export default function RandomForest() {
   const [aiSigner, setAiSigner] = useState(null);
   const [forestModel, setForestModel] = useState(null);
   const [isClient, setIsClient] = useState(false);
-  const { address } = useAccount();
+  const [address, setAddress] = useState(null);
 
   useEffect(() => {
     setIsClient(true);
+    connectWallet();
   }, []);
+
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        setAddress(accounts[0]);
+
+        window.ethereum.on('accountsChanged', function (accounts) {
+          setAddress(accounts[0]);
+        });
+      } catch (error) {
+        console.error('Error connecting to wallet:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!isClient) return;

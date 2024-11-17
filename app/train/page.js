@@ -9,7 +9,6 @@ import { DecisionTree } from '@/model/DecisionTree';
 import pako from 'pako';
 import { Link } from 'next/link';
 import { saveModelLocally } from '../../utils/modelStorage';
-import { WalletComponents } from '../../components/WalletProvider';
 
 import styles from '../../styles/train.css';
 import { Header } from '../../components/Header';
