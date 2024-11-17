@@ -23,7 +23,6 @@ export function Header() {
 
                 <Link href="/dao">DAO</Link>
                 <Link href="/push">Chat Room</Link>
-
                 <div
                     className={styles.dropdown}
                     onMouseEnter={toggleDropdown}
