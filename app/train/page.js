@@ -162,7 +162,17 @@ export default function Train() {
                 };
                 localStorage.setItem('splitDatasets', JSON.stringify(splits));
 
-                router.push('/results');
+                // Store training completion data for rewards
+                localStorage.setItem('trainingCompletion', JSON.stringify({
+                  trainerAddress: address,
+                  timestamp: new Date().toISOString(),
+                  modelName,
+                  txHash,
+                  pendingReward: true
+                }));
+
+                // Navigate to CDP page instead of results
+                router.push('/cdp');
 
               } catch (error) {
                 console.error('Error:', error);

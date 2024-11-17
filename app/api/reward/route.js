@@ -1,87 +1,79 @@
-import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
+import { NextResponse } from 'next/server';
+import { ethers } from 'ethers';
 
-// Helper function to create and fund a new wallet
-async function createAndFundWallet(coinbase) {
-  const userWallet = await Wallet.create();
-  
+// Initialize provider and wallet
+const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+const platformWallet = new ethers.Wallet(process.env.NEXT_PUBLIC_AI_PRIVATE_KEY, provider);
+
+export async function GET() {
   try {
-    const faucetTx = await userWallet.faucet();
-    await faucetTx.wait();
-  } catch (e) {
-    console.log("Faucet error or already funded:", e);
+    const balance = await provider.getBalance(platformWallet.address);
+    const formattedBalance = ethers.formatEther(balance);
+
+    return NextResponse.json({
+      success: true,
+      balance: formattedBalance,
+      address: platformWallet.address
+    });
+  } catch (error) {
+    console.error('GET /api/reward error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch wallet info' },
+      { status: 500 }
+    );
   }
-  
-  return userWallet;
 }
 
-export default async function handler(req, res) {
-  const { NEXT_PUBLIC_CDP_API_NAME, NEXT_PUBLIC_CDP_PRIVATE_KEY } = process.env;
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { address, contributionScore } = body;
 
-  // Check if the environment variables are set
-  if (!NEXT_PUBLIC_CDP_API_NAME || !NEXT_PUBLIC_CDP_PRIVATE_KEY) {
-    return res.status(500).json({ error: "Environment variables are not set" });
-  }
-
-  if (req.method === 'GET') {
-    try {
-      const coinbase = new Coinbase({
-        apiKeyName: NEXT_PUBLIC_CDP_API_NAME,
-        privateKey: NEXT_PUBLIC_CDP_PRIVATE_KEY.replaceAll("\\n", "\n"),
-      });
-
-      const userWallet = await createAndFundWallet(coinbase);
-      const balances = await userWallet.balances();
-      const address = await userWallet.getDefaultAddress();
-
-      return res.status(200).json({
-        success: true,
-        balance: balances?.eth || '0',
-        address: address.getId()
-      });
-
-    } catch (error) {
-      console.error("API Error:", error);
-      return res.status(500).json({ error: error.message || "Internal server error" });
-    }
-  }
-
-  if (req.method === 'POST') {
-    const body = req.body;
-
-    if (!body?.address) {
-      return res.status(400).json({ error: "Address is required" });
+    // Validate input
+    if (!address || !ethers.isAddress(address)) {
+      return NextResponse.json(
+        { error: 'Invalid wallet address' },
+        { status: 400 }
+      );
     }
 
-    try {
-      const coinbase = new Coinbase({
-        apiKeyName: NEXT_PUBLIC_CDP_API_NAME,
-        privateKey: NEXT_PUBLIC_CDP_PRIVATE_KEY.replaceAll("\\n", "\n"),
-      });
-
-      const userWallet = await createAndFundWallet(coinbase);
-
-      const baseReward = 0.00000001;
-      const finalReward = baseReward * (body.contributionScore || 100) / 100;
-
-      const transfer = await userWallet.createTransfer({
-        amount: finalReward,
-        assetId: "eth",
-        destination: body.address,
-      });
-
-      await transfer.wait();
-
-      return res.status(200).json({
-        success: true,
-        transactionHash: transfer?.getTransactionHash()?.substring(0, 10),
-        transactionLink: transfer?.getTransactionLink(),
-      });
-
-    } catch (error) {
-      console.error("API Error:", error);
-      return res.status(500).json({ error: error.message || "Internal server error" });
+    if (typeof contributionScore !== 'number' || contributionScore < 0 || contributionScore > 100) {
+      return NextResponse.json(
+        { error: 'Invalid contribution score' },
+        { status: 400 }
+      );
     }
-  }
 
-  return res.status(405).json({ error: "Method not allowed" });
+    // Calculate reward based on score (0.001 ETH per point)
+    const baseReward = ethers.parseEther('0.001');
+    const reward = baseReward * BigInt(Math.floor(contributionScore));
+
+    // Send transaction
+    const tx = await platformWallet.sendTransaction({
+      to: address,
+      value: reward
+    });
+
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
+
+    // Get updated balance
+    const newBalance = await provider.getBalance(platformWallet.address);
+    const formattedBalance = ethers.formatEther(newBalance);
+
+    return NextResponse.json({
+      success: true,
+      transactionHash: receipt.hash,
+      transactionLink: `${process.env.NEXT_PUBLIC_EXPLORER_URL}/tx/${receipt.hash}`,
+      balance: formattedBalance
+    });
+
+
+  } catch (error) {
+    console.error('POST /api/reward error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process reward' },
+      { status: 500 }
+    );
+  }
 }

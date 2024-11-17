@@ -6,12 +6,11 @@ import { ethers } from 'ethers';
 import { GENERATOR_ADDRESS, ABI } from '@/utils/constants';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
+import { CheckoutComponent } from '@/components/Checkout';
 import styles from '../../styles/split.css';
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://nillion-storage-apis-v0.onrender.com';
-const APP_ID = process.env.NEXT_PUBLIC_APP_ID || 'b478ac1e-1870-423f-81c3-a76bf72f394a';
-const USER_SEED = process.env.NEXT_PUBLIC_USER_SEED || 'user_123';
 
 export default function Split() {
+  const router = useRouter();
   const [uploadedDataset, setUploadedDataset] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,40 +18,27 @@ export default function Split() {
   const [numGroups, setNumGroups] = useState(5);
   const [splitDatasets, setSplitDatasets] = useState(null);
   const [transactionStatus, setTransactionStatus] = useState('');
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const [provider, setProvider] = useState(null);
 
   // Initialize provider and fee
   useEffect(() => {
-    setMounted(true);
-    if (typeof window !== 'undefined') {
+    const initProvider = async () => {
       try {
-        const newProvider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
-        setProvider(newProvider);
-        
-        const fetchFee = async () => {
-          try {
-            const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, newProvider);
-            const requiredFee = await contract.getFee();
-            setFee(requiredFee);
-          } catch (err) {
-            console.error('Error fetching fee:', err);
-            setError('Failed to fetch required fee. Please refresh the page.');
-          }
-        };
-        
-        fetchFee();
+        if (window.ethereum) {
+          const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
+          setProvider(provider);
+          
+          const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
+          const requiredFee = await contract.getFee();
+          setFee(requiredFee);
+        }
       } catch (err) {
         console.error('Provider initialization error:', err);
         setError('Failed to connect to the network. Please check your connection.');
       }
-    }
-    
-    return () => {
-      // Cleanup
-      setMounted(false);
     };
+
+    initProvider();
   }, []);
 
   // File upload handler
@@ -72,7 +58,6 @@ export default function Split() {
         reader.readAsText(file);
       });
 
-      // Validate JSON structure
       const jsonData = JSON.parse(fileContent);
       if (!jsonData.datasets || !Array.isArray(jsonData.datasets) || !jsonData.datasets[0]?.data) {
         throw new Error('Invalid dataset format. Please ensure your JSON has the correct structure.');
@@ -80,7 +65,6 @@ export default function Split() {
 
       setUploadedDataset(jsonData);
       setTransactionStatus('Dataset loaded successfully');
-
     } catch (err) {
       console.error('Upload error:', err);
       setError(err.message || 'Error processing file');
@@ -217,8 +201,6 @@ export default function Split() {
     return splits;
   };
 
-  if (!mounted) return null;
-
   return (
     <div className="container">
       <Header />
@@ -293,7 +275,6 @@ export default function Split() {
             {error}
           </div>
         )}
-  
       </div>
     </div>
   );
