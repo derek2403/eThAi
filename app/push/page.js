@@ -420,7 +420,7 @@ const PushChat = () => {
                                 disabled={loading}
                                 className="connect-button"
                             >
-                                Connect Wallet
+                              Ready to Chat
                             </button>
                         </div>
                     )}

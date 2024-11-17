@@ -168,7 +168,7 @@ export default function DatasetTrainingDAOUI() {
             {!account ? (
               <div className="connect-section">
                 <button onClick={connectWallet} className="connect-button">
-                  Connect Wallet
+                  Start DAO
                 </button>
               </div>
             ) : (
