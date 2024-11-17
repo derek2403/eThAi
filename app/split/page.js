@@ -6,12 +6,16 @@ import { ethers } from 'ethers';
 import { GENERATOR_ADDRESS, ABI } from '@/utils/constants';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
+import { CheckoutComponent } from '@/components/Checkout';
 import styles from '../../styles/split.css';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://nillion-storage-apis-v0.onrender.com';
 const APP_ID = process.env.NEXT_PUBLIC_APP_ID;
 const USER_SEED = process.env.NEXT_PUBLIC_USER_SEED || 'user_123';
 
+
 export default function Split() {
+  const router = useRouter();
   const [uploadedDataset, setUploadedDataset] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,41 +23,28 @@ export default function Split() {
   const [numGroups, setNumGroups] = useState(5);
   const [splitDatasets, setSplitDatasets] = useState(null);
   const [transactionStatus, setTransactionStatus] = useState('');
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const [provider, setProvider] = useState(null);
   const [datasetStoreId, setDatasetStoreId] = useState(null);
 
   // Initialize provider and fee
   useEffect(() => {
-    setMounted(true);
-    if (typeof window !== 'undefined') {
+    const initProvider = async () => {
       try {
-        const newProvider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
-        setProvider(newProvider);
-        
-        const fetchFee = async () => {
-          try {
-            const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, newProvider);
-            const requiredFee = await contract.getFee();
-            setFee(requiredFee);
-          } catch (err) {
-            console.error('Error fetching fee:', err);
-            setError('Failed to fetch required fee. Please refresh the page.');
-          }
-        };
-        
-        fetchFee();
+        if (window.ethereum) {
+          const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_OP_SEPOLIA_RPC);
+          setProvider(provider);
+          
+          const contract = new ethers.Contract(GENERATOR_ADDRESS, ABI, provider);
+          const requiredFee = await contract.getFee();
+          setFee(requiredFee);
+        }
       } catch (err) {
         console.error('Provider initialization error:', err);
         setError('Failed to connect to the network. Please check your connection.');
       }
-    }
-    
-    return () => {
-      // Cleanup
-      setMounted(false);
     };
+
+    initProvider();
   }, []);
 
   // File upload handler
@@ -73,11 +64,11 @@ export default function Split() {
         reader.readAsText(file);
       });
 
-      // Validate JSON structure
       const jsonData = JSON.parse(fileContent);
       if (!jsonData.datasets || !Array.isArray(jsonData.datasets) || !jsonData.datasets[0]?.data) {
         throw new Error('Invalid dataset format. Please ensure your JSON has the correct structure.');
       }
+
 
       // Store in Nillion
       setTransactionStatus('Storing dataset in Nillion...');
@@ -107,6 +98,9 @@ export default function Split() {
       setUploadedDataset(jsonData); // Keep this for UI feedback
       setTransactionStatus('Dataset stored successfully');
 
+
+      setUploadedDataset(jsonData);
+      setTransactionStatus('Dataset loaded successfully');
     } catch (err) {
       console.error('Upload error:', err);
       setError(err.message || 'Error processing file');
@@ -126,7 +120,6 @@ export default function Split() {
       setIsLoading(true);
       setError(null);
       setSplitDatasets(null);
-      setTransactionStatus('Initializing split request...');
 
       // Retrieve dataset from Nillion
       setTransactionStatus('Retrieving dataset from Nillion...');
@@ -157,17 +150,10 @@ export default function Split() {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      // Request sequence from contract with longer timeout
+      // Request sequence from contract
       setTransactionStatus('Requesting sequence...');
       const dataLength = uploadedDataset.datasets[0].data.length;
-      
-      // Add transaction options with higher gas limit
-      const txOptions = {
-        value: fee,
-        gasLimit: 500000, // Increased gas limit
-      };
-
-      const tx = await contract.requestSequence(dataLength, userRandomNumber, txOptions);
+      const tx = await contract.requestSequence(dataLength, userRandomNumber, { value: fee });
       
       setTransactionStatus('Waiting for transaction confirmation...');
       const receipt = await tx.wait();
@@ -186,63 +172,44 @@ export default function Split() {
         throw new Error('Sequence request event not found');
       }
 
-      // Watch for sequence generation with improved timeout handling
+      // Watch for sequence generation
       const parsedEvent = contract.interface.parseLog(sequenceRequestEvent);
       const sequenceNumber = parsedEvent.args.sequenceNumber;
 
       setTransactionStatus('Waiting for sequence generation...');
+      
+      // Set up event listener with timeout
+      const sequence = await Promise.race([
+        new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            contract.removeAllListeners('SequenceGenerated');
+            reject(new Error('Timeout waiting for sequence'));
+          }, 60000);
 
-      // Increased timeout duration and better error handling
-      const sequence = await new Promise((resolve, reject) => {
-        let timeoutId;
-        let eventListener;
-
-        const cleanup = () => {
-          if (timeoutId) clearTimeout(timeoutId);
-          if (eventListener) contract.removeListener('SequenceGenerated', eventListener);
-        };
-
-        eventListener = (resultSequence, numbers) => {
-          if (resultSequence.toString() === sequenceNumber.toString()) {
-            cleanup();
-            resolve(Array.from(numbers).map(n => n.toString()));
-          }
-        };
-
-        contract.on('SequenceGenerated', eventListener);
-
-        timeoutId = setTimeout(() => {
-          cleanup();
-          reject(new Error('Sequence generation timed out. Please try again with a smaller dataset or fewer partitions.'));
-        }, 120000); // Increased to 2 minutes
-      });
+          contract.on('SequenceGenerated', (resultSequence, numbers) => {
+            if (resultSequence.toString() === sequenceNumber.toString()) {
+              clearTimeout(timeout);
+              contract.removeAllListeners('SequenceGenerated');
+              resolve(Array.from(numbers).map(n => n.toString()));
+            }
+          });
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Operation timed out')), 70000)
+        )
+      ]);
 
       // Split dataset using sequence
-      setTransactionStatus('Splitting dataset...');
       const splits = splitDatasetBySequence(sequence);
       setSplitDatasets(splits);
       
       // Store splits in localStorage and redirect
       localStorage.setItem('splitDatasets', JSON.stringify(splits));
-      setTransactionStatus('Split successful! Redirecting...');
-      
-      // Add small delay before redirect to show success message
-      await new Promise(resolve => setTimeout(resolve, 1000));
       router.push('/results');
 
     } catch (err) {
       console.error('Split error:', err);
-      let errorMessage = 'Failed to split dataset: ';
-      
-      if (err.message.includes('Timeout')) {
-        errorMessage += 'Operation timed out. Please try again with a smaller dataset or fewer partitions.';
-      } else if (err.message.includes('insufficient funds')) {
-        errorMessage += 'Insufficient funds to complete the transaction.';
-      } else {
-        errorMessage += err.message;
-      }
-      
-      setError(errorMessage);
+      setError(err.message || 'Failed to split dataset');
       setTransactionStatus('Split request failed');
     } finally {
       setIsLoading(false);
@@ -282,8 +249,6 @@ export default function Split() {
 
     return splits;
   };
-
-  if (!mounted) return null;
 
   return (
     <div className="container">
@@ -359,7 +324,6 @@ export default function Split() {
             {error}
           </div>
         )}
-  
       </div>
     </div>
   );
