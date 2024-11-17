@@ -2,8 +2,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useWalletClient } from 'wagmi';
+import { useRouter } from 'next/navigation';
 
 export default function CDPPage() {
+  const router = useRouter();
   const [platformBalance, setPlatformBalance] = useState('0');
   const [platformAddress, setPlatformAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,44 +65,47 @@ export default function CDPPage() {
         body: JSON.stringify({
           address: userAddress,
           contributionScore,
-        }),
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Add transaction to history
-      setTransactions(prev => [...prev, {
-        hash: data.transactionHash,
-        link: data.transactionLink,
-        address: userAddress,
-        score: contributionScore,
-        timestamp: new Date().toLocaleString()
-      }]);
-
-      setPlatformBalance(data.balance);
-      setStatus(`Payment successful! Transaction: ${data.transactionHash}`);
       
-      // Clear form
-      setUserAddress('');
-      setScore(75);
+      if (data.success) {
+        // Get training details if available
+        const trainingData = localStorage.getItem('trainingCompletion');
+        const { modelName, txHash, timestamp } = trainingData ? JSON.parse(trainingData) : {};
+        
+        // Add to transaction history
+        setTransactions(prev => [{
+          hash: data.transactionHash,
+          link: data.transactionLink,
+          address: userAddress,
+          score: contributionScore,
+          timestamp: new Date().toLocaleString(),
+          modelName,
+          trainingTxHash: txHash,
+          trainingTimestamp: timestamp
+        }, ...prev]);
 
-      return {
-        success: true,
-        txHash: data.transactionHash,
-        txLink: data.transactionLink
-      };
+        // Update platform balance
+        setPlatformBalance(data.balance);
+        setStatus('Reward sent successfully');
+        setError('');
+        
+        // Clear training completion data
+        localStorage.removeItem('trainingCompletion');
+
+        // Add a small delay to show success message before redirecting
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Redirect to results page
+        router.push('/results');
+      } else {
+        throw new Error(data.error || 'Failed to send reward');
+      }
     } catch (err) {
       console.error('Reward error:', err);
       setError('Failed to send reward: ' + err.message);
-      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
@@ -112,6 +117,36 @@ export default function CDPPage() {
     const interval = setInterval(fetchWalletInfo, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Add new useEffect to check for pending rewards
+  useEffect(() => {
+    const checkPendingRewards = () => {
+      try {
+        const trainingData = localStorage.getItem('trainingCompletion');
+        if (trainingData) {
+          const { trainerAddress, pendingReward } = JSON.parse(trainingData);
+          
+          if (pendingReward) {
+            // Auto-fill the form
+            setUserAddress(trainerAddress);
+            setScore(60); // Fixed score for model training
+            
+            // Clear the pending reward flag
+            const updatedData = JSON.parse(trainingData);
+            updatedData.pendingReward = false;
+            localStorage.setItem('trainingCompletion', JSON.stringify(updatedData));
+            
+            // Optional: Automatically trigger the reward
+            rewardUser(trainerAddress, 60);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking pending rewards:', error);
+      }
+    };
+
+    checkPendingRewards();
+  }, []); // Run once on component mount
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
