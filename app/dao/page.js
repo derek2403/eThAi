@@ -30,30 +30,46 @@ export default function DatasetTrainingDAOUI() {
 
     const initializeContract = async () => {
         try {
-            const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
-            const daoContract = new ethers.Contract(contractAddress, DAO_ABI, provider);
+            // Check if window.ethereum is available
+            if (!window.ethereum) {
+                throw new Error("Please install MetaMask to use this dApp");
+            }
+
+            // Request account access
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
             
+            // Create Web3Provider and get signer
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            
+            // Create contract instance with signer
+            const daoContract = new ethers.Contract(contractAddress, DAO_ABI, signer);
             setContract(daoContract);
             
-            // Load data without token initialization for now
-            const proposalCount = await daoContract.proposalCount();
-            const proposals = [];
-            for (let i = 0; i < proposalCount; i++) {
-                const [description, forVotes, againstVotes, endTime, executed] = await daoContract.getProposal(i);
-                proposals.push({
-                    id: i,
-                    description,
-                    forVotes,
-                    againstVotes,
-                    endTime,
-                    executed
-                });
+            // Load initial data
+            try {
+                const proposalCount = await daoContract.proposalCount();
+                const proposals = [];
+                for (let i = 0; i < proposalCount; i++) {
+                    const proposal = await daoContract.getProposal(i);
+                    proposals.push({
+                        id: i,
+                        description: proposal[0],
+                        forVotes: proposal[1],
+                        againstVotes: proposal[2],
+                        endTime: proposal[3],
+                        executed: proposal[4]
+                    });
+                }
+                setProposals(proposals);
+            } catch (error) {
+                console.error("Error loading proposals:", error);
+                setStatus("Error loading proposals. Please check your connection and try again.");
             }
-            setProposals(proposals);
             
         } catch (error) {
             console.error("Error initializing contract:", error);
-            setStatus(`Error initializing contract: ${error.message}`);
+            setStatus(error.message || "Error connecting to wallet");
         }
     };
 

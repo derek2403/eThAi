@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 import { SignProtocolClient, SpMode, EvmChains } from '@ethsign/sp-sdk';
 import { createPublicClient, http, createWalletClient, custom } from 'viem';
 import { scrollSepolia } from 'viem/chains';
-import { DAO_ABI, DAO_CONTRACT } from '@/utils/DAOconstants';
+import { DAO_ABI, DAO_CONTRACT } from '../../utils/DAOconstants';
 
 // Function to generate hash of data
 function generateHash(data) {

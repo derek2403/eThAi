@@ -1,94 +1,6 @@
-export const DAO_CONTRACT = "0x8DF1Ec87E73B9EeD35E098127A02C2463AD4bF2c"
+export const DAO_CONTRACT = "0x47c484d9195320Dd40b2D57bcCe73c67c548bb54"
 
 export const DAO_ABI = [
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "description",
-				"type": "string"
-			}
-		],
-		"name": "createProposal",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "attester",
-				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "schemaId",
-				"type": "uint64"
-			},
-			{
-				"internalType": "uint64",
-				"name": "attestationId",
-				"type": "uint64"
-			},
-			{
-				"internalType": "bytes",
-				"name": "data",
-				"type": "bytes"
-			}
-		],
-		"name": "didReceiveAttestation",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			},
-			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			},
-			{
-				"internalType": "bytes",
-				"name": "",
-				"type": "bytes"
-			}
-		],
-		"name": "didReceiveRevocation",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "proposalId",
-				"type": "uint256"
-			}
-		],
-		"name": "executeProposal",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
 	{
 		"inputs": [],
 		"stateMutability": "nonpayable",
@@ -168,79 +80,29 @@ export const DAO_ABI = [
 		"type": "event"
 	},
 	{
-		"inputs": [],
-		"name": "renounceOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"anonymous": false,
 		"inputs": [
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "trainer",
+				"name": "user",
 				"type": "address"
 			},
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "modelName",
+				"name": "datasetId",
 				"type": "string"
 			},
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "modelHash",
+				"name": "modelType",
 				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "datasetHash",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
 			}
 		],
-		"name": "TrainingVerified",
+		"name": "TrainingCompleted",
 		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "proposalId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "support",
-				"type": "bool"
-			}
-		],
-		"name": "vote",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
 	},
 	{
 		"anonymous": false,
@@ -268,79 +130,61 @@ export const DAO_ABI = [
 		"type": "event"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			},
-			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			},
-			{
-				"internalType": "contract IERC20",
-				"name": "",
-				"type": "address"
-			},
+		"inputs": [],
+		"name": "TOKENS_PER_TRAINING",
+		"outputs": [
 			{
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
-			},
-			{
-				"internalType": "bytes",
-				"name": "",
-				"type": "bytes"
 			}
 		],
-		"name": "didReceiveAttestation",
-		"outputs": [],
-		"stateMutability": "pure",
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "VOTING_PERIOD",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			},
-			{
-				"internalType": "uint64",
-				"name": "",
-				"type": "uint64"
-			},
-			{
-				"internalType": "contract IERC20",
-				"name": "",
-				"type": "address"
-			},
+				"internalType": "string",
+				"name": "description",
+				"type": "string"
+			}
+		],
+		"name": "createProposal",
+		"outputs": [
 			{
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
-			},
-			{
-				"internalType": "bytes",
-				"name": "",
-				"type": "bytes"
 			}
 		],
-		"name": "didReceiveRevocation",
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "proposalId",
+				"type": "uint256"
+			}
+		],
+		"name": "executeProposal",
 		"outputs": [],
-		"stateMutability": "pure",
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -396,17 +240,12 @@ export const DAO_ABI = [
 				"components": [
 					{
 						"internalType": "string",
-						"name": "modelName",
+						"name": "datasetId",
 						"type": "string"
 					},
 					{
 						"internalType": "string",
-						"name": "modelHash",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "datasetHash",
+						"name": "modelType",
 						"type": "string"
 					},
 					{
@@ -494,6 +333,31 @@ export const DAO_ABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "datasetId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "modelType",
+				"type": "string"
+			}
+		],
+		"name": "recordTraining",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "token",
 		"outputs": [
@@ -507,16 +371,16 @@ export const DAO_ABI = [
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "TOKENS_PER_TRAINING",
-		"outputs": [
+		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
 			}
 		],
-		"stateMutability": "view",
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -536,17 +400,12 @@ export const DAO_ABI = [
 		"outputs": [
 			{
 				"internalType": "string",
-				"name": "modelName",
+				"name": "datasetId",
 				"type": "string"
 			},
 			{
 				"internalType": "string",
-				"name": "modelHash",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "datasetHash",
+				"name": "modelType",
 				"type": "string"
 			},
 			{
@@ -566,52 +425,19 @@ export const DAO_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "verifiedDatasetHashes",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "verifiedModelHashes",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "VOTING_PERIOD",
-		"outputs": [
-			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "proposalId",
 				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "support",
+				"type": "bool"
 			}
 		],
-		"stateMutability": "view",
+		"name": "vote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]
