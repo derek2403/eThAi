@@ -1,4 +1,4 @@
-export const DAO_CONTRACT = "0xaDd73A5A44039C1f52f1dEAA4c73c7161e39ACEf"
+export const DAO_CONTRACT = "0xc11463da06c44a745CD4a19B63903eF145Be2b55"
 
 export const DAO_ABI = [
 	{
@@ -18,6 +18,62 @@ export const DAO_ABI = [
 			}
 		],
 		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "attester",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64",
+				"name": "schemaId",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "attestationId",
+				"type": "uint64"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "didReceiveAttestation",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			},
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"name": "didReceiveRevocation",
+		"outputs": [],
+		"stateMutability": "payable",
 		"type": "function"
 	},
 	{
@@ -112,24 +168,6 @@ export const DAO_ABI = [
 		"type": "event"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "datasetId",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "modelType",
-				"type": "string"
-			}
-		],
-		"name": "recordTraining",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "renounceOwnership",
 		"outputs": [],
@@ -142,23 +180,35 @@ export const DAO_ABI = [
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "user",
+				"name": "trainer",
 				"type": "address"
 			},
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "datasetId",
+				"name": "modelName",
 				"type": "string"
 			},
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "modelType",
+				"name": "modelHash",
 				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "datasetHash",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
 			}
 		],
-		"name": "TrainingCompleted",
+		"name": "TrainingVerified",
 		"type": "event"
 	},
 	{
@@ -220,6 +270,82 @@ export const DAO_ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			},
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"name": "didReceiveAttestation",
+		"outputs": [],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			},
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"name": "didReceiveRevocation",
+		"outputs": [],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "uint256",
 				"name": "proposalId",
 				"type": "uint256"
@@ -270,12 +396,17 @@ export const DAO_ABI = [
 				"components": [
 					{
 						"internalType": "string",
-						"name": "datasetId",
+						"name": "modelName",
 						"type": "string"
 					},
 					{
 						"internalType": "string",
-						"name": "modelType",
+						"name": "modelHash",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "datasetHash",
 						"type": "string"
 					},
 					{
@@ -405,12 +536,17 @@ export const DAO_ABI = [
 		"outputs": [
 			{
 				"internalType": "string",
-				"name": "datasetId",
+				"name": "modelName",
 				"type": "string"
 			},
 			{
 				"internalType": "string",
-				"name": "modelType",
+				"name": "modelHash",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "datasetHash",
 				"type": "string"
 			},
 			{
@@ -421,6 +557,44 @@ export const DAO_ABI = [
 			{
 				"internalType": "bool",
 				"name": "verified",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "verifiedDatasetHashes",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"name": "verifiedModelHashes",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
 				"type": "bool"
 			}
 		],
@@ -441,4 +615,3 @@ export const DAO_ABI = [
 		"type": "function"
 	}
 ]
-

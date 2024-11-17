@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import styles from '../../styles/split.css';
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://nillion-storage-apis-v0.onrender.com';
-const APP_ID = process.env.NEXT_PUBLIC_APP_ID || 'b478ac1e-1870-423f-81c3-a76bf72f394a';
+const APP_ID = process.env.NEXT_PUBLIC_APP_ID;
 const USER_SEED = process.env.NEXT_PUBLIC_USER_SEED || 'user_123';
 
 export default function Split() {
@@ -22,6 +22,7 @@ export default function Split() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [provider, setProvider] = useState(null);
+  const [datasetStoreId, setDatasetStoreId] = useState(null);
 
   // Initialize provider and fee
   useEffect(() => {
@@ -78,8 +79,33 @@ export default function Split() {
         throw new Error('Invalid dataset format. Please ensure your JSON has the correct structure.');
       }
 
-      setUploadedDataset(jsonData);
-      setTransactionStatus('Dataset loaded successfully');
+      // Store in Nillion
+      setTransactionStatus('Storing dataset in Nillion...');
+      const storeResponse = await fetch(`${API_BASE}/api/apps/${APP_ID}/secrets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: {
+            nillion_seed: USER_SEED,
+            secret_value: JSON.stringify(jsonData),
+            secret_name: 'dataset',
+          },
+          permissions: {
+            retrieve: [],
+            update: [],
+            delete: [],
+            compute: {},
+          },
+        }),
+      }).then(res => res.json());
+
+      if (!storeResponse.store_id) {
+        throw new Error('Failed to store dataset in Nillion');
+      }
+
+      setDatasetStoreId(storeResponse.store_id);
+      setUploadedDataset(jsonData); // Keep this for UI feedback
+      setTransactionStatus('Dataset stored successfully');
 
     } catch (err) {
       console.error('Upload error:', err);
@@ -91,7 +117,7 @@ export default function Split() {
 
   // Generate random sequence and split dataset
   const handleSplitRequest = async () => {
-    if (!provider || !uploadedDataset || !fee) {
+    if (!provider || !datasetStoreId || !fee) {
       setError('Please ensure all requirements are met before splitting');
       return;
     }
@@ -101,6 +127,19 @@ export default function Split() {
       setError(null);
       setSplitDatasets(null);
 
+      // Retrieve dataset from Nillion
+      setTransactionStatus('Retrieving dataset from Nillion...');
+      const retrieveResponse = await fetch(
+        `${API_BASE}/api/secret/retrieve/${datasetStoreId}?retrieve_as_nillion_user_seed=${USER_SEED}&secret_name=dataset`
+      ).then(res => res.json());
+
+      if (!retrieveResponse.secret_value) {
+        throw new Error('Failed to retrieve dataset from Nillion');
+      }
+
+      const dataset = JSON.parse(retrieveResponse.secret_value);
+
+      // Get sequence from smart contract
       const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY;
       if (!privateKey) {
         throw new Error('Private key not configured');
@@ -119,7 +158,7 @@ export default function Split() {
 
       // Request sequence from contract
       setTransactionStatus('Requesting sequence...');
-      const dataLength = uploadedDataset.datasets[0].data.length;
+      const dataLength = dataset.datasets[0].data.length;
       const tx = await contract.requestSequence(dataLength, userRandomNumber, { value: fee });
       
       setTransactionStatus('Waiting for transaction confirmation...');
@@ -167,7 +206,7 @@ export default function Split() {
       ]);
 
       // Split dataset using sequence
-      const splits = splitDatasetBySequence(sequence);
+      const splits = splitDatasetBySequence(sequence, dataset);
       setSplitDatasets(splits);
       
       // Store splits in localStorage and redirect
@@ -184,12 +223,12 @@ export default function Split() {
   };
 
   // Split dataset using sequence
-  const splitDatasetBySequence = (sequence) => {
-    if (!uploadedDataset) {
+  const splitDatasetBySequence = (sequence, dataset) => {
+    if (!dataset) {
       throw new Error('No dataset available');
     }
 
-    const originalDataset = uploadedDataset.datasets[0];
+    const originalDataset = dataset.datasets[0];
     const groupSize = Math.floor(sequence.length / numGroups);
     const splits = [];
 
