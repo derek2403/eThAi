@@ -56,10 +56,10 @@ const Page = () => {
       <div className={styles.landingContainer}>
         <div className={styles.landingLeft}>
           <div className={styles.landingLeftTop}>
-            <h1>Powerful GPU compute solutions on-demand</h1>
+            <h1>Powerful AI Aggregation Platform</h1>
             <p>
-              Accelerate growth and get closer to the edge with Aethir's distributed cloud compute infrastructure.
-              We provide secure, cost-effective access to enterprise-grade GPUs around the world.
+            Unlock AI's full potential with our platform, integrating blockchain for secure, transparent, and decentralized access to models and data. Simplify innovation with seamless, traceable AI resource management.
+
             </p>
           </div>
           <div className={styles.landingLeftBottom}>
