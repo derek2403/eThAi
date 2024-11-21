@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import { ISPHook } from "@ethsign/sign-protocol-evm/src/interfaces/ISPHook.sol";
 
 // Token for the DAO
 contract TrainingToken is ERC20 {
@@ -14,10 +15,11 @@ contract TrainingToken is ERC20 {
 }
 
 // Main DAO Contract
-contract DatasetTrainingDAO is Ownable(msg.sender) {  // Fixed: Added constructor parameter
+contract DatasetTrainingDAO is Ownable(msg.sender), ISPHook {  // Added ISPHook
     struct TrainingRecord {
-        string datasetId;
-        string modelType;
+        string modelName;
+        string modelHash;
+        string datasetHash;
         uint256 timestamp;
         bool verified;
     }
@@ -35,11 +37,19 @@ contract DatasetTrainingDAO is Ownable(msg.sender) {  // Fixed: Added constructo
     uint256 public proposalCount;
     uint256 public constant VOTING_PERIOD = 3 days;
     uint256 public constant TOKENS_PER_TRAINING = 100 * 10**18; // 100 tokens per training
-
+    
     mapping(address => TrainingRecord[]) public userTrainings;
     mapping(uint256 => Proposal) public proposals;
-    
-    event TrainingCompleted(address indexed user, string datasetId, string modelType);
+    mapping(string => bool) public verifiedModelHashes;
+    mapping(string => bool) public verifiedDatasetHashes;
+
+    event TrainingVerified(
+        address indexed trainer,
+        string modelName,
+        string modelHash,
+        string datasetHash,
+        uint256 timestamp
+    );
     event ProposalCreated(uint256 indexed proposalId, string description);
     event Voted(uint256 indexed proposalId, address indexed voter, bool support);
     event ProposalExecuted(uint256 indexed proposalId);
@@ -48,28 +58,78 @@ contract DatasetTrainingDAO is Ownable(msg.sender) {  // Fixed: Added constructo
         token = new TrainingToken();
     }
 
-    // Record a new training session and reward tokens
-    function recordTraining(
-        string memory datasetId,
-        string memory modelType
-    ) external {
+    // Sign Protocol Hook implementation
+    function didReceiveAttestation(
+        address attester,
+        uint64 schemaId,
+        uint64 attestationId,
+        bytes calldata data
+    ) external payable override {
+        // Decode the attestation data
+        (
+            string memory modelHash,
+            string memory datasetHash,
+            string memory modelName,
+            uint256 timestamp
+        ) = abi.decode(data, (string, string, string, uint256));
+
+        // Verify this is a new submission
+        require(!verifiedModelHashes[modelHash], "Model already registered");
+        require(!verifiedDatasetHashes[datasetHash], "Dataset already used");
+
+        // Record the training
         TrainingRecord memory newRecord = TrainingRecord({
-            datasetId: datasetId,
-            modelType: modelType,
-            timestamp: block.timestamp,
-            verified: true // In a real implementation, you'd want verification logic
+            modelName: modelName,
+            modelHash: modelHash,
+            datasetHash: datasetHash,
+            timestamp: timestamp,
+            verified: true
         });
 
-        userTrainings[msg.sender].push(newRecord);
+        // Update state
+        userTrainings[attester].push(newRecord);
+        verifiedModelHashes[modelHash] = true;
+        verifiedDatasetHashes[datasetHash] = true;
 
         // Mint tokens as reward
-        token.mint(msg.sender, TOKENS_PER_TRAINING);
+        token.mint(attester, TOKENS_PER_TRAINING);
 
-        // Emit event for Push Protocol notification
-        emit TrainingCompleted(msg.sender, datasetId, modelType);
+        emit TrainingVerified(attester, modelName, modelHash, datasetHash, timestamp);
     }
 
-    // Create a new proposal
+    // Required interface implementations
+    function didReceiveAttestation(
+        address,
+        uint64,
+        uint64,
+        IERC20,
+        uint256,
+        bytes calldata
+    ) external pure override {
+        revert("Not implemented");
+    }
+
+    function didReceiveRevocation(
+        address,
+        uint64,
+        uint64,
+        bytes calldata
+    ) external payable override {
+        revert("Revocations not supported");
+    }
+
+    function didReceiveRevocation(
+        address,
+        uint64,
+        uint64,
+        IERC20,
+        uint256,
+        bytes calldata
+    ) external pure override {
+        revert("Not implemented");
+    }
+
+    // DAO Functions
     function createProposal(string memory description) external returns (uint256) {
         require(token.balanceOf(msg.sender) >= 10 * 10**18, "Need 10 tokens to create proposal");
         
@@ -83,7 +143,6 @@ contract DatasetTrainingDAO is Ownable(msg.sender) {  // Fixed: Added constructo
         return proposalId;
     }
 
-    // Vote on a proposal
     function vote(uint256 proposalId, bool support) external {
         Proposal storage proposal = proposals[proposalId];
         require(block.timestamp <= proposal.endTime, "Voting ended");
@@ -103,7 +162,6 @@ contract DatasetTrainingDAO is Ownable(msg.sender) {  // Fixed: Added constructo
         emit Voted(proposalId, msg.sender, support);
     }
 
-    // Execute a proposal
     function executeProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
         require(block.timestamp > proposal.endTime, "Voting still active");
@@ -115,9 +173,7 @@ contract DatasetTrainingDAO is Ownable(msg.sender) {  // Fixed: Added constructo
     }
 
     // View functions
-    function getUserTrainings(address user) external view returns (
-        TrainingRecord[] memory
-    ) {
+    function getUserTrainings(address user) external view returns (TrainingRecord[] memory) {
         return userTrainings[user];
     }
 

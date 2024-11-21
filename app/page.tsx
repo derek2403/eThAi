@@ -5,8 +5,10 @@ import { Header } from '@/components/Header';
 import styles from '../styles/landing.module.css';
 import * as THREE from 'three';
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 const Page = () => {
+  const router = useRouter();
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,8 +65,18 @@ const Page = () => {
             </p>
           </div>
           <div className={styles.landingLeftBottom}>
-            <button className={styles.landingLeftBottomButton1}>Access Compute</button>
-            <button className={styles.landingLeftBottomButton2}>Provide Compute</button>
+            <button 
+              className={styles.landingLeftBottomButton1}
+              onClick={() => router.push('/split')}
+            >
+              Access Compute
+            </button>
+            <button 
+              className={styles.landingLeftBottomButton2}
+              onClick={() => router.push('/closeModelCard')}
+            >
+              Provide Compute
+            </button>
           </div>
         </div>
         <div ref={mountRef} className={styles.landingRight}></div>
