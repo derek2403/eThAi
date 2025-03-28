@@ -41,9 +41,6 @@ export function Header() {
                 </div>
             </div>
                 <WalletComponents />
-            <div className={styles.joinButton}>
-                <button>Join Us</button>
-            </div>
         </div>
     );
 }

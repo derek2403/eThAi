@@ -300,7 +300,7 @@ const PushChat = () => {
             <Header />
             <div className="chat-container">
                 <div className="chat-header">
-                    <Image src="/push-logo.png" alt="Push Protocol" width={40} height={40} />
+                    <Image src="/push-protocol.png" alt="Push Protocol" width={40} height={40} />
                     <h1>Push Protocol Chat</h1>
                 </div>
 
